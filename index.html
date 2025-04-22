@@ -111,6 +111,21 @@
       drawFingers();
     }
 
+    function startMouse(event) {
+      event.preventDefault();
+          const newFinger = {
+            idx: fingers.length+1,
+            x: event.pageX,
+            y: event.pageY,
+            circleColor: getUniqueColor() // Assign a unique color from the list
+          };
+          fingers.push(newFinger); // Add new finger
+        if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
+      
+      lastTouchTime = Date.now(); // Reset inactivity timer
+      drawFingers();
+    }
+
     // Handle touch move (moving fingers)
     function moveFinger(event) {
       event.preventDefault();
@@ -123,6 +138,16 @@
           finger.y = touch.pageY;
         }
       }
+      drawFingers();
+    }
+    function moveMouse(event) {
+      event.preventDefault();
+      idx = fingers.length-1;
+        if (fingers[idx]) {
+          fingers[idx].x = event.pageX
+          fingers[idx].y = event.pageY
+        }
+      
       drawFingers();
     }
 
@@ -169,7 +194,9 @@
 
     // Attach event listeners for touch events
     canvas.addEventListener('touchstart', startTouch);
+    canvas.addEventListener('mousedown', startMouse);
     canvas.addEventListener('touchmove', moveFinger);
+    canvas.addEventListener('mousemove', moveMouse);
     canvas.addEventListener('touchend', removeFinger);
     canvas.addEventListener('touchcancel', removeFinger);
 
