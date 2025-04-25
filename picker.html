@@ -914,6 +914,41 @@
 
         // Initial UI setup
         updateUIState();
+
+        document.getElementById('custom-set-btn').addEventListener('click', () => {
+        // Only pre-populate if no custom selections exist
+        if (customSelectedIds.length === 0) {
+            const filteredGames = pinballMachines.filter(game => 
+                selectedFloors.includes(game.floor) && 
+                selectedYearClasses.includes(game.yearClass)
+            );
+            customSelectedIds = filteredGames.map(game => game.id);
+        }
+        
+        // Populate modal with current selections
+        modal.style.display = 'block';
+        customList.innerHTML = '';
+        pinballMachines.forEach(game => {
+            const li = document.createElement('li');
+            li.className = 'custom-game-item';
+            const btn = document.createElement('button');
+            btn.textContent = customSelectedIds.includes(game.id) ? 'Selected' : 'Select';
+            btn.addEventListener('click', () => {
+                if (customSelectedIds.includes(game.id)) {
+                    customSelectedIds = customSelectedIds.filter(id => id !== game.id);
+                    btn.textContent = 'Select';
+                } else {
+                    customSelectedIds.push(game.id);
+                    btn.textContent = 'Selected';
+                }
+                updateUIState();
+            });
+            li.textContent = game.commonName;
+            li.appendChild(btn);
+            customList.appendChild(li);
+        });
+        updateUIState();
+        });
     </script>
 </body>
 </html>
