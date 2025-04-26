@@ -928,6 +928,9 @@
             if (event.target === modal) {
                 modal.style.display = 'none';
             }
+            if (customSelectedIds.length === 0 && customSetBtn.classList.contains('selected')){
+                customSetBtn.classList.remove('selected')
+            }
         }
 
         window.addEventListener('click', handleModalClose);
@@ -939,7 +942,7 @@
 
         resetBtn.addEventListener('click', () => {
             customSelectedIds = [];
-            if (customSetBtn.classList.contains('selected')) {customSetBtn.classList.toggle('selected')}
+            if (customSetBtn.classList.contains('selected')) {customSetBtn.classList.remove('selected')}
             updateUIState();
             document.querySelectorAll('.custom-game-item').forEach(li => {
                 li.classList.remove('selected');
