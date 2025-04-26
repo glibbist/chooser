@@ -834,7 +834,7 @@
 
         function updateUIState() {
             resetBtn.style.display = customSelectedIds.length ? 'inline-block' : 'none';
-            customSetBtn.style.background-color = customSelectedIds.length ? '#4CAF50' : '#e0e0e0';
+            customSetBtn.style.backgroundColor = customSelectedIds.length ? '#4CAF50' : '#e0e0e0';
             const disableFilters = customSelectedIds.length > 0;
             floorButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
             yearClassButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
