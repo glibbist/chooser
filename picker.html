@@ -843,7 +843,6 @@
 
         function updateUIState() {
             resetBtn.style.display = customSelectedIds.length ? 'inline-block' : 'none';
-            customSetBtn.classList.toggle('selected');
             const disableFilters = customSelectedIds.length > 0;
             floorButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
             yearClassButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
@@ -898,6 +897,7 @@
                     selectedYearClasses.includes(game.yearClass)
                 );
                 customSelectedIds = filteredGames.map(game => game.id);
+                if (!customSetBtn.classList.contains('selected')) {customSetBtn.classList.toggle('selected')}
             }
             
             modal.style.display = 'block';
@@ -938,6 +938,7 @@
 
         resetBtn.addEventListener('click', () => {
             customSelectedIds = [];
+            if (customSetBtn.classList.contains('selected') {customSetBtn.classList.toggle('selected')}
             updateUIState();
             document.querySelectorAll('.custom-game-item').forEach(li => {
                 li.classList.remove('selected');
