@@ -5,7 +5,7 @@
     <title>Pinball Selector</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
             padding: 10px;
         }
@@ -821,6 +821,8 @@
             "yearClass": 1
           }
         ];
+
+        pinballMachines.sort((a,b) => (a.commonName > b.commonName) ? 1 : ((b.commonName > a.commonName) ? -1 : 0))
 
         let selectedFloors = [0, 1];
         let selectedYearClasses = [0, 1, 2];
