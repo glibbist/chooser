@@ -828,11 +828,13 @@
         let selectedYearClasses = [0, 1, 2];
         let customSelectedIds = [];
         const resetBtn = document.getElementById('reset-custom-btn');
+        const customSetBtn = document.getElementById('custom-set-btn');
         const floorButtons = document.querySelectorAll('#floor-buttons .filter-btn');
         const yearClassButtons = document.querySelectorAll('#year-class-buttons .filter-btn');
 
         function updateUIState() {
             resetBtn.style.display = customSelectedIds.length ? 'inline-block' : 'none';
+            customSetBtn.style.background-color = customSelectedIds.length ? '#4CAF50' : '#e0e0e0';
             const disableFilters = customSelectedIds.length > 0;
             floorButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
             yearClassButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
