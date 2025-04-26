@@ -101,6 +101,15 @@
         #custom-list{
             clear:both;
         }
+        #custom-set-btn{
+            background-color: #e0e0e0;
+        }
+        #custom-set-btn.selected{
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
+        
+        customSetBtn.style.backgroundColor = customSelectedIds.length ? '' : '';
     </style>
 </head>
 <body>
@@ -834,7 +843,7 @@
 
         function updateUIState() {
             resetBtn.style.display = customSelectedIds.length ? 'inline-block' : 'none';
-            customSetBtn.style.backgroundColor = customSelectedIds.length ? '#4CAF50' : '#e0e0e0';
+            customSetBtn.classList.toggle('selected');
             const disableFilters = customSelectedIds.length > 0;
             floorButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
             yearClassButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
