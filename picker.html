@@ -32,6 +32,22 @@
             opacity: 0.6;
             pointer-events: none;
         }
+        
+        #persist-btn {
+            width: 20%;
+            padding: 15px;
+            margin: 5px 0;
+            font-size: 16px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+      
+        #persist-btn.selected{
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
         #select-pin-btn {
             width: 100%;
             padding: 15px;
@@ -99,6 +115,14 @@
             font-size: 24px;
             text-align: center;
         }
+        #prev {
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 18px;
+            text-align: center;
+            color: #999;
+            white-space: pre;
+        }
         #custom-list{
             clear:both;
         }
@@ -126,9 +150,13 @@
         <button id="custom-set-btn" class="filter-btn">Custom Set</button>
         <button id="reset-custom-btn" class="filter-btn reset-btn" style="display: none;">Reset</button>
     </div>
-
-    <button id="select-pin-btn">Select Pin</button>
+    <div class="button-group">
+      <button id="persist-btn">No Dupe</button>
+      <button id="select-pin-btn">Select Pin</button>
+        
+    </div>
     <div id="result"></div>
+    <div id="prev"></div>
 
     <div id="custom-set-modal" class="modal">
         <div class="modal-content">
@@ -153,8 +181,11 @@
             let selectedFloors = [0, 1];
             let selectedYearClasses = [0, 1, 2];
             let customSelectedIds = [];
+            let persist = false;
+            let prevGames = [];
             const resetBtn = document.getElementById('reset-custom-btn');
             const customSetBtn = document.getElementById('custom-set-btn');
+            const persistBtn = document.getElementById('persist-btn');
             const floorButtons = document.querySelectorAll('#floor-buttons .filter-btn');
             const yearClassButtons = document.querySelectorAll('#year-class-buttons .filter-btn');
 
@@ -259,6 +290,17 @@
               modal.style.display = 'none';
           });
 
+          persistBtn.addEventListener('click', () => {
+              persistBtn.classList.toggle('selected')
+              persist = !persist;
+              //prevGames reset
+              if (persist === false){
+                prevGames = [];
+                document.getElementById('prev').textContent = '';
+
+              }
+          });
+
           resetBtn.addEventListener('click', () => {
               customSelectedIds = [];
               if (customSetBtn.classList.contains('selected')) {customSetBtn.classList.remove('selected')}
@@ -269,13 +311,30 @@
           });
 
           document.getElementById('select-pin-btn').addEventListener('click', () => {
-              const selectedGames = getSelectedGames();
+              let selectedGames = getSelectedGames();
+              if (persist === true && prevGames.length > 0){
+                  const filteredGames = selectedGames.filter(a => !prevGames.map(b=>b.id).includes(a.id));
+                  if (filteredGames.length !== 0) {
+                    selectedGames = filteredGames;
+                  }
+                  else {
+                    prevGames = [];
+                  }
+              }
               if (selectedGames.length === 0) {
                   document.getElementById('result').textContent = 'No games selected!';
                   return;
               }
               const randomIndex = Math.floor(Math.random() * selectedGames.length);
-              document.getElementById('result').textContent = selectedGames[randomIndex].commonName;
+              const selectedGame = selectedGames[randomIndex];
+              document.getElementById('result').textContent = selectedGame.commonName;
+              if (persist === true) {
+                if (prevGames.length > 0) {
+                  document.getElementById('prev').textContent = prevGames[prevGames.length-1].commonName + '\r\n' + document.getElementById('prev').textContent;
+                }
+                prevGames.push(selectedGame);
+                
+              }
           });
 
           updateUIState();
