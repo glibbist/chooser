@@ -45,20 +45,18 @@
     canvas.height = window.innerHeight;
 
     // Color list for circles
-    let colors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#553222', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
+    let colors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#ffff00', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
     let circleColors = colors;
 
     let animationFrameId;
 
 function animationLoop() {
   // Perform actions for each frame
-  console.log("Frame updated");
   drawFingers();
 
   // Check for the stop condition
   if (fingerChosen === true) {
     cancelAnimationFrame(animationFrameId);
-    console.log("Animation stopped");
     return;
   }
 
@@ -70,7 +68,6 @@ function animationLoop() {
 // Function to stop the animation manually if needed
 function stopAnimation() {
     cancelAnimationFrame(animationFrameId);
-    console.log("Animation manually stopped");
 }
 
     // Helper function to generate a unique color for each finger
@@ -89,8 +86,10 @@ function stopAnimation() {
     function drawFingers() {
       ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
       let rad = Date.now() - lastTouchTime;
+      let lineWidth = 1;
       rad = rad < 0.1 ? 0.1 : rad;  //Don't divide by zero
       rad = (rad / inactivityTimeout);
+      ctx.lineWidth = rad * 2
       rad *= 70;
       for (const finger of fingers) {
         // If the finger is chosen, keep its color. Otherwise, set the color to white
@@ -103,7 +102,7 @@ function stopAnimation() {
         if (!fingerChosen && rad < 70) {
           ctx.beginPath();
           ctx.arc(finger.x, finger.y, rad, 0, Math.PI * 2); // 60px diameter, 30px radius
-          ctx.strokeStyle = '#000000dd'; // Use finger's unique color or white if unchosen
+          ctx.strokeStyle = '#000000ee'; // Use finger's unique color or white if unchosen
           ctx.stroke();
         }
       }
@@ -170,7 +169,6 @@ function stopAnimation() {
     function moveFinger(event) {
       event.preventDefault();
       const touches = event.touches;
-      console.log(event.touches);
       for (let i = 0; i < touches.length; i++) {
         const touch = touches[i];
         const finger = fingers.find(f => f.id === touch.identifier);
