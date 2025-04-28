@@ -100,25 +100,27 @@
 
     // Handle touch start (adding a new finger)
     function startTouch(event) {
-      event.preventDefault();
-      const touches = event.touches;
-      for (let i = 0; i < touches.length; i++) {
-        const touch = touches[i];
-        // Check if the touch is already tracked
-        if (!fingers.some(f => f.id === touch.identifier)) {
-          const newFinger = {
-            idx: fingers.length + 1,
-            id: touch.identifier,
-            x: touch.pageX,
-            y: touch.pageY,
-            circleColor: getUniqueColor() // Assign a unique color from the list
-          };
-          fingers.push(newFinger); // Add new finger
+      if ( fingers.length < 5 ) {
+        event.preventDefault();
+        const touches = event.touches;
+        for (let i = 0; i < touches.length; i++) {
+          const touch = touches[i];
+          // Check if the touch is already tracked
+          if (!fingers.some(f => f.id === touch.identifier)) {
+            const newFinger = {
+              idx: fingers.length + 1,
+              id: touch.identifier,
+              x: touch.pageX,
+              y: touch.pageY,
+              circleColor: getUniqueColor() // Assign a unique color from the list
+            };
+            fingers.push(newFinger); // Add new finger
+          }
+          if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
         }
-        if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
+        lastTouchTime = Date.now(); // Reset inactivity timer
+        drawFingers();
       }
-      lastTouchTime = Date.now(); // Reset inactivity timer
-      drawFingers();
     }
 
     function startMouse(event) {
