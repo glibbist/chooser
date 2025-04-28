@@ -100,7 +100,7 @@ function stopAnimation() {
         if (!fingerChosen && rad < 1) {
           ctx.lineWidth = rad * 2;
           ctx.beginPath();
-          ctx.arc(finger.x, finger.y,  rad * 70;, 0, Math.PI * 2); // 60px diameter, 30px radius
+          ctx.arc(finger.x, finger.y,  rad * 70, 0, Math.PI * 2); // 60px diameter, 30px radius
           ctx.strokeStyle = '#000000ee'; // Use finger's unique color or white if unchosen
           ctx.stroke();
         }
