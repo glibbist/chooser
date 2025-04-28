@@ -91,7 +91,6 @@ function stopAnimation() {
       rad = 1 - (rad / inactivityTimeout);
       for (const finger of fingers) {
         // If the finger is chosen, keep its color. Otherwise, set the color to white
-        ctx.reset();
         const color = (fingerChosen === false) ? finger.circleColor : (finger === chosenFinger) ? finger.circleColor : '#ffffff00'; // Unchosen are filled with clear
         ctx.beginPath();
         ctx.arc(finger.x, finger.y, 70, 0, Math.PI * 2); // 60px diameter, 30px radius
@@ -119,7 +118,7 @@ function stopAnimation() {
       // Set the finger as chosen
       fingerChosen = true;
       stopAnimation();
-
+      ctx.reset();
       // Draw the chosen finger's circle and stop moving other fingers
       drawFingers();
     }
@@ -189,11 +188,12 @@ function stopAnimation() {
         const touch = touches[i];
         const index = fingers.findIndex(f => f.id === touch.identifier);
         if (index !== -1) {
-          if ( chosenFinger != null && fingers[index].id === chosenFinger.id ) {
+          if ( fingerChosen === true && fingers[index].id === chosenFinger.id ) {
             fingerChosen = false;
             fingers = [];
             stopAnimation();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.reset();
           }
           else {
             circleColors.push(fingers[index].circleColor);
