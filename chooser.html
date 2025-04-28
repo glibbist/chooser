@@ -143,6 +143,7 @@ function stopAnimation() {
           }
           if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
         }
+        animationLoop();
         lastTouchTime = Date.now(); // Reset inactivity timer
         drawFingers();
     }
