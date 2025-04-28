@@ -62,7 +62,8 @@
     // Helper function to draw fingers and circles
     function drawFingers() {
       ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-
+      let rad = 70*(1-(Date.now() - lastTouchTime)/inactivityTimeout);
+      rad = rad > 1 ? 1 : rad;
       for (const finger of fingers) {
         // If the finger is chosen, keep its color. Otherwise, set the color to white
         const color = (fingerChosen === false) ? finger.circleColor : (finger === chosenFinger) ? finger.circleColor : '#ffffff00'; // Unchosen are filled with clear
@@ -70,6 +71,10 @@
         ctx.arc(finger.x, finger.y, 70, 0, Math.PI * 2); // 60px diameter, 30px radius
         ctx.fillStyle = color; // Use finger's unique color or white if unchosen
         ctx.fill();
+        ctx.beginPath();
+        ctx.arc(finger.x, finger.y, rad, 0, Math.PI * 2); // 60px diameter, 30px radius
+        ctx.strokeStyle = '#000000dd'; // Use finger's unique color or white if unchosen
+        ctx.stroke();
       }
       playerCounter.textContent = fingerChosen === true ? chosenFinger.idx : fingers.length;
     }
