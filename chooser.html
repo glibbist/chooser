@@ -91,6 +91,7 @@ function stopAnimation() {
       rad = 1 - (rad / inactivityTimeout);
       for (const finger of fingers) {
         // If the finger is chosen, keep its color. Otherwise, set the color to white
+        ctx.reset();
         const color = (fingerChosen === false) ? finger.circleColor : (finger === chosenFinger) ? finger.circleColor : '#ffffff00'; // Unchosen are filled with clear
         ctx.beginPath();
         ctx.arc(finger.x, finger.y, 70, 0, Math.PI * 2); // 60px diameter, 30px radius
