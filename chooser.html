@@ -25,13 +25,13 @@
   </style>
 </head>
 <body>
-  <div id="text"><h1>0</h1></div>
+<!--   <div id="text"><h1>0</h1></div> -->
   <canvas id="fingerCanvas"></canvas>
   
   <script>
     const canvas = document.getElementById("fingerCanvas");
     const ctx = canvas.getContext("2d");
-    let playerCounter = document.getElementsByTagName("h1")[0];
+    // let playerCounter = document.getElementsByTagName("h1")[0];
 
     let fingers = []; // Track active fingers
     let lastTouchTime = Date.now();
@@ -77,7 +77,7 @@
         ctx.strokeStyle = '#000000dd'; // Use finger's unique color or white if unchosen
         ctx.stroke();
       }
-      playerCounter.textContent = fingerChosen === true ? chosenFinger.idx : fingers.length;
+      // playerCounter.textContent = fingerChosen === true ? chosenFinger.idx : fingers.length;
     }
 
     // Function to choose a finger randomly after 2 seconds of inactivity
