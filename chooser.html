@@ -63,7 +63,7 @@
     function drawFingers() {
       ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
       let rad = Date.now() - lastTouchTime;
-      rad < 0.1 ? 0.1 : rad;
+      rad = rad < 0.1 ? 0.1 : rad;  //Don't divide by zero
       rad = 1 - (inactivityTimeout / rad);
       rad *= 70;
       for (const finger of fingers) {
