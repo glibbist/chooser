@@ -198,7 +198,7 @@ function stopAnimation() {
         const touch = touches[i];
         const index = fingers.findIndex(f => f.id === touch.identifier);
         if (index !== -1) {
-          if ( fingerChosen === true && fingers[index].idx === chosenFinger.idx ) {
+          if ( fingerChosen === true && fingers[index].id === chosenFinger.id ) {
             fingerChosen = false;
             fingers = [];
             chosenFinger = null;
@@ -207,7 +207,6 @@ function stopAnimation() {
             stopAnimation();
             ctx.reset();
             return;
-            
           }
           circleColors.push(fingers[index].circleColor);
           fingers.splice(index, 1); // Remove finger from the array
