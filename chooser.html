@@ -98,10 +98,10 @@ function stopAnimation() {
         ctx.fill();
 
         if (!fingerChosen && rad < 1) {
-          ctx.lineWidth = rad * 2;
+          ctx.lineWidth = rad * 3.5;
           ctx.beginPath();
           ctx.arc(finger.x, finger.y,  rad * 70, 0, Math.PI * 2); // 60px diameter, 30px radius
-          ctx.strokeStyle = "rgb( 255 255 255 / 10% )"; // Use finger's unique color or white if unchosen
+          ctx.strokeStyle = "rgb( 255 255 255 / 42% )"; // Use finger's unique color or white if unchosen
           ctx.stroke();
         }
       }
