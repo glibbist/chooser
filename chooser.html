@@ -206,6 +206,7 @@ function stopAnimation() {
             clearInterval(inactivityCheck);
             stopAnimation();
             ctx.reset();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             return;
           }
           circleColors.push(fingers[index].circleColor);
