@@ -45,7 +45,33 @@
     canvas.height = window.innerHeight;
 
     // Color list for circles
-    let circleColors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#000000', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
+    let colors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#553222', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
+    let circleColors = colors;
+
+    let animationFrameId;
+
+function animationLoop() {
+  // Perform actions for each frame
+  console.log("Frame updated");
+  drawFingers();
+
+  // Check for the stop condition
+  if (fingerChosen === true) {
+    cancelAnimationFrame(animationFrameId);
+    console.log("Animation stopped");
+    return;
+  }
+
+  // Request the next frame
+  animationFrameId = requestAnimationFrame(animationLoop);
+}
+// Start the animation loop
+
+// Function to stop the animation manually if needed
+function stopAnimation() {
+    cancelAnimationFrame(animationFrameId);
+    console.log("Animation manually stopped");
+}
 
     // Helper function to generate a unique color for each finger
     function getUniqueColor() {
@@ -100,7 +126,6 @@
 
     // Handle touch start (adding a new finger)
     function startTouch(event) {
-      if ( fingers.length < 5 ) {
         event.preventDefault();
         const touches = event.touches;
         for (let i = 0; i < touches.length; i++) {
@@ -120,7 +145,6 @@
         }
         lastTouchTime = Date.now(); // Reset inactivity timer
         drawFingers();
-      }
     }
 
     function startMouse(event) {
@@ -136,7 +160,7 @@
         if (fingerChosen === true) {
           ctx.reset();
         }
-      
+      animationLoop();
       lastTouchTime = Date.now(); // Reset inactivity timer
       drawFingers();
     }
@@ -145,6 +169,7 @@
     function moveFinger(event) {
       event.preventDefault();
       const touches = event.touches;
+      console.log(event.touches);
       for (let i = 0; i < touches.length; i++) {
         const touch = touches[i];
         const finger = fingers.find(f => f.id === touch.identifier);
@@ -157,11 +182,11 @@
     }
     function moveMouse(event) {
       event.preventDefault();
-      idx = fingers.length-1;
-        if (fingers[idx]) {
-          fingers[idx].x = event.pageX
-          fingers[idx].y = event.pageY
-        }
+      // idx = fingers.length-1;
+      //   if (fingers[idx]) {
+      //     fingers[idx].x = event.pageX
+      //     fingers[idx].y = event.pageY
+      //   }
       
       drawFingers();
     }
@@ -186,7 +211,7 @@
         fingerChosen = false;
         fingers = [];
         chosenFinger = null;
-        circleColors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#000000', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
+        circleColors = colors;
       }
       
       if(fingers.length < 2){
