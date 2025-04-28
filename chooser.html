@@ -158,7 +158,7 @@ function stopAnimation() {
           fingers.push(newFinger); // Add new finger
         if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
         if (fingerChosen === true) {
-          ctx.reset();
+          
         }
       animationLoop();
       lastTouchTime = Date.now(); // Reset inactivity timer
@@ -179,16 +179,6 @@ function stopAnimation() {
       }
       drawFingers();
     }
-    function moveMouse(event) {
-      event.preventDefault();
-      // idx = fingers.length-1;
-      //   if (fingers[idx]) {
-      //     fingers[idx].x = event.pageX
-      //     fingers[idx].y = event.pageY
-      //   }
-      
-      drawFingers();
-    }
 
     // Handle touch end (removing a finger)
     function removeFinger(event) {
@@ -198,15 +188,11 @@ function stopAnimation() {
         const touch = touches[i];
         const index = fingers.findIndex(f => f.id === touch.identifier);
         if (index !== -1) {
-          if ( fingerChosen === true && fingers[index].id === chosenFinger.id ) {
+          if ( chosenFinger != null && fingers[index].id === chosenFinger.id ) {
             fingerChosen = false;
             fingers = [];
-            chosenFinger = null;
-            circleColors = colors.slice();
-            clearInterval(inactivityCheck);
             stopAnimation();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            return;
           }
           circleColors.push(fingers[index].circleColor);
           fingers.splice(index, 1); // Remove finger from the array
