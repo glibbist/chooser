@@ -129,6 +129,9 @@
           };
           fingers.push(newFinger); // Add new finger
         if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
+        if (fingerChosen === true) {
+          ctx.reset();
+        }
       
       lastTouchTime = Date.now(); // Reset inactivity timer
       drawFingers();
