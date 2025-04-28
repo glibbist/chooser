@@ -198,13 +198,14 @@ function stopAnimation() {
         const touch = touches[i];
         const index = fingers.findIndex(f => f.id === touch.identifier);
         if (index !== -1) {
-          if ( fingerChosen && fingers[index].idx === chosenFinger.idx ) {
+          if ( fingerChosen === true && fingers[index].idx === chosenFinger.idx ) {
             fingerChosen = false;
             fingers = [];
             chosenFinger = null;
             circleColors = colors;
             clearInterval(inactivityCheck);
-            drawFingers();
+            stopAnimation();
+            ctx.reset();
             return;
             
           }
