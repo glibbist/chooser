@@ -46,7 +46,7 @@
 
     // Color list for circles
     let colors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#ffff00', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
-    let circleColors = colors;
+    let circleColors = colors.slice();
 
     let animationFrameId;
 
@@ -202,10 +202,9 @@ function stopAnimation() {
             fingerChosen = false;
             fingers = [];
             chosenFinger = null;
-            circleColors = colors;
+            circleColors = colors.slice();
             clearInterval(inactivityCheck);
             stopAnimation();
-            ctx.reset();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             return;
           }
@@ -221,7 +220,7 @@ function stopAnimation() {
         fingerChosen = false;
         fingers = [];
         chosenFinger = null;
-        circleColors = colors;
+        circleColors = colors.slice();
       }
       
       if(fingers.length < 2){
