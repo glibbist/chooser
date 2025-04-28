@@ -194,10 +194,12 @@ function stopAnimation() {
             stopAnimation();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
           }
-          circleColors.push(fingers[index].circleColor);
-          fingers.splice(index, 1); // Remove finger from the array
-          if (fingerChosen === false) {
-            lastTouchTime = Date.now(); // Reset inactivity timer
+          else {
+            circleColors.push(fingers[index].circleColor);
+            fingers.splice(index, 1); // Remove finger from the array
+            if (fingerChosen === false) {
+              lastTouchTime = Date.now(); // Reset inactivity timer
+            }
           }
         }
       }
