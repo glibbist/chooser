@@ -45,30 +45,7 @@
     canvas.height = window.innerHeight;
 
     // Color list for circles
-    let colors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#ffff00', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
-    let circleColors = colors.slice();
-
-    let animationFrameId;
-
-function animationLoop() {
-  // Perform actions for each frame
-  drawFingers();
-
-  // Check for the stop condition
-  if (fingerChosen === true) {
-    cancelAnimationFrame(animationFrameId);
-    return;
-  }
-
-  // Request the next frame
-  animationFrameId = requestAnimationFrame(animationLoop);
-}
-// Start the animation loop
-
-// Function to stop the animation manually if needed
-function stopAnimation() {
-    cancelAnimationFrame(animationFrameId);
-}
+    let circleColors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#000000', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
 
     // Helper function to generate a unique color for each finger
     function getUniqueColor() {
@@ -86,9 +63,9 @@ function stopAnimation() {
     function drawFingers() {
       ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
       let rad = Date.now() - lastTouchTime;
-      let lineWidth = 1;
       rad = rad < 0.1 ? 0.1 : rad;  //Don't divide by zero
-      rad = 1 - (rad / inactivityTimeout);
+      rad = 1 - (inactivityTimeout / rad);
+      rad *= 70;
       for (const finger of fingers) {
         // If the finger is chosen, keep its color. Otherwise, set the color to white
         const color = (fingerChosen === false) ? finger.circleColor : (finger === chosenFinger) ? finger.circleColor : '#ffffff00'; // Unchosen are filled with clear
@@ -96,14 +73,11 @@ function stopAnimation() {
         ctx.arc(finger.x, finger.y, 70, 0, Math.PI * 2); // 60px diameter, 30px radius
         ctx.fillStyle = color; // Use finger's unique color or white if unchosen
         ctx.fill();
-
-        if (!fingerChosen && rad < 1) {
-          ctx.lineWidth = rad * 3.5;
-          ctx.beginPath();
-          ctx.arc(finger.x, finger.y,  rad * 70, 0, Math.PI * 2); // 60px diameter, 30px radius
-          ctx.strokeStyle = "rgb( 255 255 255 / 42% )"; // Use finger's unique color or white if unchosen
-          ctx.stroke();
-        }
+        
+        ctx.beginPath();
+        ctx.arc(finger.x, finger.y, rad, 0, Math.PI * 2); // 60px diameter, 30px radius
+        ctx.strokeStyle = '#000000dd'; // Use finger's unique color or white if unchosen
+        ctx.stroke();
       }
       // playerCounter.textContent = fingerChosen === true ? chosenFinger.idx : fingers.length;
     }
@@ -117,34 +91,32 @@ function stopAnimation() {
 
       // Set the finger as chosen
       fingerChosen = true;
-      stopAnimation();
-      ctx.reset();
+
       // Draw the chosen finger's circle and stop moving other fingers
       drawFingers();
     }
 
     // Handle touch start (adding a new finger)
     function startTouch(event) {
-        event.preventDefault();
-        const touches = event.touches;
-        for (let i = 0; i < touches.length; i++) {
-          const touch = touches[i];
-          // Check if the touch is already tracked
-          if (!fingers.some(f => f.id === touch.identifier)) {
-            const newFinger = {
-              idx: fingers.length + 1,
-              id: touch.identifier,
-              x: touch.pageX,
-              y: touch.pageY,
-              circleColor: getUniqueColor() // Assign a unique color from the list
-            };
-            fingers.push(newFinger); // Add new finger
-          }
-          if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
+      event.preventDefault();
+      const touches = event.touches;
+      for (let i = 0; i < touches.length; i++) {
+        const touch = touches[i];
+        // Check if the touch is already tracked
+        if (!fingers.some(f => f.id === touch.identifier)) {
+          const newFinger = {
+            idx: fingers.length + 1,
+            id: touch.identifier,
+            x: touch.pageX,
+            y: touch.pageY,
+            circleColor: getUniqueColor() // Assign a unique color from the list
+          };
+          fingers.push(newFinger); // Add new finger
         }
-        animationLoop();
-        lastTouchTime = Date.now(); // Reset inactivity timer
-        drawFingers();
+        if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
+      }
+      lastTouchTime = Date.now(); // Reset inactivity timer
+      drawFingers();
     }
 
     function startMouse(event) {
@@ -157,10 +129,7 @@ function stopAnimation() {
           };
           fingers.push(newFinger); // Add new finger
         if (fingers.length > 1) inactivityCheck = setInterval(checkInactivity, 100);
-        if (fingerChosen === true) {
-          
-        }
-      animationLoop();
+      
       lastTouchTime = Date.now(); // Reset inactivity timer
       drawFingers();
     }
@@ -179,6 +148,16 @@ function stopAnimation() {
       }
       drawFingers();
     }
+    function moveMouse(event) {
+      event.preventDefault();
+      idx = fingers.length-1;
+        if (fingers[idx]) {
+          fingers[idx].x = event.pageX
+          fingers[idx].y = event.pageY
+        }
+      
+      drawFingers();
+    }
 
     // Handle touch end (removing a finger)
     function removeFinger(event) {
@@ -188,19 +167,10 @@ function stopAnimation() {
         const touch = touches[i];
         const index = fingers.findIndex(f => f.id === touch.identifier);
         if (index !== -1) {
-          if ( fingerChosen === true && fingers[index].id === chosenFinger.id ) {
-            fingerChosen = false;
-            fingers = [];
-            stopAnimation();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.reset();
-          }
-          else {
-            circleColors.push(fingers[index].circleColor);
-            fingers.splice(index, 1); // Remove finger from the array
-            if (fingerChosen === false) {
-              lastTouchTime = Date.now(); // Reset inactivity timer
-            }
+          circleColors.push(fingers[index].circleColor);
+          fingers.splice(index, 1); // Remove finger from the array
+          if (fingerChosen === false) {
+            lastTouchTime = Date.now(); // Reset inactivity timer
           }
         }
       }
@@ -209,7 +179,7 @@ function stopAnimation() {
         fingerChosen = false;
         fingers = [];
         chosenFinger = null;
-        circleColors = colors.slice();
+        circleColors = ['#ff0000', '#0000ff', '#ffa500', '#800080', '#000000', '#00ffff', '#008000', "#ff00ff", "#8000ff"];
       }
       
       if(fingers.length < 2){
