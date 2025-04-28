@@ -88,7 +88,7 @@ function stopAnimation() {
       let rad = Date.now() - lastTouchTime;
       let lineWidth = 1;
       rad = rad < 0.1 ? 0.1 : rad;  //Don't divide by zero
-      rad = (rad / inactivityTimeout);
+      rad = 1 - (rad / inactivityTimeout);
       ctx.lineWidth = rad * 2
       rad *= 70;
       for (const finger of fingers) {
