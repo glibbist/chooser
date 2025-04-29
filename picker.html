@@ -318,7 +318,7 @@
                     selectedGames = filteredGames;
                   }
                   else {
-                    prevGames = [];
+                    prevGames = prevGames.splice(prevGames.length-1);
                   }
               }
               if (selectedGames.length === 0) {
