@@ -143,16 +143,6 @@
       }
       drawFingers();
     }
-    function moveMouse(event) {
-      event.preventDefault();
-      idx = fingers.length-1;
-        if (fingers[idx]) {
-          fingers[idx].x = event.pageX
-          fingers[idx].y = event.pageY
-        }
-      
-      drawFingers();
-    }
 
     // Handle touch end (removing a finger)
     function removeFinger(event) {
