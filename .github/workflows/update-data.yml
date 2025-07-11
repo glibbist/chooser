@@ -1,0 +1,38 @@
+name: Update Games Data
+
+on:
+  schedule:
+    - cron:  '0 0 * * *' # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual trigger via GitHub Actions tab
+
+jobs:
+  update:
+    name: Update data.json with new games
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install axios
+
+      - name: Run update script
+        run: node .github/workflows/scripts/update-games.js
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          if ! git diff --quiet; then
+              git commit -m "Automatic update of data.json ($(date))"
+              git push origin main
+          else
+              echo "No changes to commit"
+          fi
