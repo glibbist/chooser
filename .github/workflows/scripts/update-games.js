@@ -1,75 +1,77 @@
 const axios = require('axios');
 const fs = require('fs');
-const path = require('path');
+const { resolve } = require('path');
 
-const DIRNAME = __dirname;
-// Move up two levels from scripts/ and go into repo root
-const DATA_PATH = path.resolve(DIRNAME, '../../data.json');
+const DATA_PATH = resolve(__dirname, '../../data.json');
 
-function loadExistingData() {
-    if (fs.existsSync(DATA_PATH)) {
-        const existing = fs.readFileSync(DATA_PATH, 'utf8');
-        return JSON.parse(existing);
-    }
-    return [];
-}
-
-async function fetchGames() {
-    try {
-        const response = await axios.get('https://pinballmap.com/api/v1/locations/17135/machine_details.json');
-        if (response.status !== 200 || !response.data.machines) {
-            throw new Error('Failed to fetch data');
-        }
-        return response.data.machines;
-    } catch (error) {
-        console.error(error.message);
-        process.exit(1);
-    }
-}
-
-function processGameData(inputGames,existingData) {
-    const allGames = inputGames.map(game => {
+function processEntries(apiData, existingData) {
+    const allGames = apiData.map(game => {
         const existingEntry = existingData.find(e => e.id === game.id);
         const yearClass = (() => {
             if (game.year < 1980) return 0;
             if (game.year <= 1997) return 1;
             return 2;
         })();
-        
-        // Common name with 'The ' removal
+
         const commonName = game.name.replace(/^The\s+/i,'');
-        
+
         return {
             id: game.id,
-            name: game.name,
+            commonName: commonName,
+            floor: existingEntry ? existingEntry.floor : 1,  // Preserve
             year: game.year,
+            yearClass,
             manufacturer: game.manufacturer,
             ipdb_link: game.ipdb_link,
             ipdb_id: game.ipdb_id,
-            kineticist_url: game.kineticist_url,
-            opdb_id: game.opdb_id,
-            commonName,  // Set commonName here
-            floor: existingEntry ? existingEntry.floor : 1, // Preserve floor if exists, otherwise 1
-            yearClass  // Calculate new
-        };
+            kineticist_url: game.kineticist_url
+        };    
     });
 
-    existingData.forEach(game => {
-        if (!allGames.find(g => g.id === game.id)) {
-            allGames.push(game);
+    existingData.forEach(existingGame => {
+        if (!apiData.map(g=>g.id).includes(existingGame.id)) {
+            allGames.push(existingGame);
         }
     });
 
-    allGames.sort((a,b) => a.id - b.id); // Sort by id
-    return allGames;
+    return allGames.sort((a,b) => a.id - b.id);
 }
 
-async function main(){
-    const inputGames = await fetchGames();
-    const existingData = loadExistingData();
-    const combinedData = processGameData(inputGames,existingData);
+async function fetchGames() {
+    try {
+        const response = await axios.get('https://pinballmap.com/api/v1/locations/17135/machine_details.json');
+        if (response.data.machines) {
+            return response.data.machines;
+        } else {
+            throw new Error('Unable to access machine details.');
+        }
+    } catch(err) {
+        console.error('Data Fetch Error:', err.message);
+        process.exit(1); // Stop execution
+    }
+}
 
-    fs.writeFileSync(DATA_PATH, JSON.stringify(combinedData,null,2));
+function loadPreviousData() {
+    if (fs.existsSync(DATA_PATH)) {
+        const contents = fs.readFileSync(DATA_PATH, 'utf8');
+        return JSON.parse(contents);
+    } else {
+        return [];
+    }
+}
+
+async function main() {
+    const previousDataset = loadPreviousData();
+    const fetchedGames = await fetchGames().catch(() => []);
+
+    if (!fetchedGames || !Array.isArray(fetchedGames)) {
+        process.exit(2); // Abort program
+    }
+
+    const newDataset = processEntries(fetchedGames, previousDataset);
+    fs.writeFileSync(DATA_PATH,JSON.stringify(newDataset,null,2), { encoding:'utf8' });
+
+    console.log(`Saved data: ${DATA_PATH}`);
 }
 
 main();
