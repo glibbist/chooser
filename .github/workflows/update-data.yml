@@ -1,63 +1,70 @@
-name: Pin-ball JSON Syncer
+name: Pin-ball JSON Synchronizer
 
 on:
   workflow_dispatch:
-  # Schedule prod (uncomment)
+  # Schedule example (daily sync at midnight)
   # schedule:
-  #  - cron: '0 0 * * *'
+  #   - cron: '0 0 * * *'
 
 jobs:
-  data_sync:
+  auto_sync_data:
     runs-on: ubuntu-latest
-    # GitHub Token Permissions
     env:
       CI: true
     permissions:
-      contents: write
+      contents: write  # Required for commit and update permissions
 
     steps:
-    - name: Clone Repository + Auth via Token
+
+    # Step 1: Git Repository Checkout
+    - name: Checkout Repo
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # All commits for git diff analysis
-        token: ${{ secrets.GITHUB_TOKEN }}  # Preauth Token
+        fetch-depth: 0
 
-    - name: Set Up Node.js
+    # Step 2: Setup Node.js environment for script execution
+    - name: Setup Environment
       uses: actions/setup-node@v3
       with:
-        node-version: 20
-
-    - name: Install axios (HTTP/S)
+        node-version: 20  
+    - name: Install Axios (Dep)
       run: npm install axios
 
-    - name: Execute Pin-ball Data Sync Script
+    # Step 3: Execute Data Update Script
+    - name: Run Async Data Update Script
       run: |
-          cd "${{ github.workspace }}"
-          node .github/workflows/scripts/update-games.js
-
-    - name: Display JSON Processed Data
+        cd "${{ env.GITHUB_WORKSPACE }}"
+        node .github/workflows/scripts/update-games.js  # (full path)
+      
+    # Debugging step to observe data.json output
+    - name: Display JSON Results
       run: |
-          echo "--------- Processed JSON data.json file: ----------"
-          cat "${{ github.workspace }}/data.json"
-  
-    - name: Confirm JSON Updates
-      id: changes
+        echo "--------- data.json after script execution: ----------"
+        cat "${{ github.workspace }}/data.json"
+
+    # Git-Diff Step
+    - name: Check File Diff for Changes
+      id: file_check
       run: |
-          git diff --exit-code data.json  # Compares exact changes (inc. newlines)
-          echo "::set-output name=has_changed::$?"  # Exit 0 = no change
+        git diff --exit-code data.json  # Compares with expected format (inc newlines)
+        echo "::set-output name=has_changed::$?"  # Capture exit code
 
-    - name: Git Config and Commit (if changes)
-      if: steps.changes.outputs.has_changed != '0'
+    # Git Configuration (Bot Account)
+    - name: Git Setup (Git Config)
+      if: steps.file_check.outputs.has_changed != '0'  # Only configure if changes
       run: |
-        git config --global user.name 'github-actions[bot]' 
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"   
 
-        git add data.json  # Prepare stage
+    # Commit/Push: Only if differences found
+    - name: Commit and Push JSON Data Update
+      if: steps.file_check.outputs.has_changed != '0'
+      run: |
+        git add data.json  # Add specific file
 
-        git diff --cached  # Pre-commit verify
-        git commit -m "AUTO-UPD: Scheduled JSON sync applied latest"
-
-        git push origin main  # << Substitute main with yours
-      # Auth with GitHub token
-      env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Repository auto-configured
+        # Final Commit
+        git commit -m "AUTO-UPD: Synchronized JSON pin-ball data updates"
+        
+        git push origin main  # Substitute main if required
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Auth Token used for pushing
