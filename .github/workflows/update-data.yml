@@ -1,53 +1,44 @@
-name: Update Games Data
+name: Sync Pinball Data
 
 on:
   schedule:
-    - cron:  '0 0 * * *' # Runs daily at midnight
-  workflow_dispatch:  # Allow manual triggering
+    - cron:  '0 0 * * *' # Daily at midnight
+  workflow_dispatch:  # Allow manual testing
 
 jobs:
-  update:
-    name: Sync Pinball Data
+  updateData:
+    name: Fetch data & sync
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Install Node.js (v18)
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Install dependencies
+      - name: Install Axios (external dependency)
         run: npm install axios
 
-      - name: Update data.json
+      - name: Execute Script
         run: node .github/workflows/scripts/update-games.js
 
-      - name: Git Stage Changes
-        id: stage
-        run: git add data.json
-
-      - name: Verify File Changes
-        id: diff-check
+      - name: Check if Data Needs Commit
+        id: diffCheck
         run: |
-          if (( git diff --quiet )); then
-            echo "is_git_clean=true" >> $GITHUB_ENV
-          else
-            echo "is_git_clean=false" >> $GITHUB_ENV
+          git diff --exit-code data.json  # Focus on *this* file only
+         # Skip if previous `data.json` commit (ignore untracked files)
+          if (! $?); then
+            echo "hasChanges=true" >> $GITHUB_ENV  # Changes detected
           fi
 
-      - name: Commit Changes if Detected
-        if: env.is_git_clean == 'false'
+      - name: Commit JSON Updates (Only When Changed)
+        if: env.hasChanges == 'true'
         run: |
-          cd "${{ github.workspace }}"  # Important: Change back to repo root directory
+          cd "${{ github.workspace }}"  # Return to CWD
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json  
-          if [ -z "$(git status --porcelain)" ]; then
-              echo "No changes to commit, skipping commit"
-          else
-              git commit -m "Automatic Update: data.json changed"
-              git push origin main  # << Replace with your default!
-          fi
+          git add data.json 
+          git commit -m "Auto-sync data.json (action)" && git push origin main  # Use correct main/default!
