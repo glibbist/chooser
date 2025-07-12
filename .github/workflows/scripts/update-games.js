@@ -1,5 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
+
 const { resolve } = require('path');
 
 
@@ -71,10 +72,25 @@ async function main() {
         process.exit(2); // Abort program
     }
 
-    const newDataset = processEntries(fetchedGames, previousDataset);
-    fs.writeFileSync(DATA_PATH,JSON.stringify(newDataset,null,2), { encoding:'utf8' });
+    
 
-    console.log(`Saved data: ${DATA_PATH}`);
+    const newDataset = processEntries(fetchedGames, previousDataset);
+    
+function saveData(data) {
+    try {
+        fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2) + '\n', 'utf8');
+        console.log(`JSON successfully saved to ${DATA_PATH}`);
+    } catch (err) {
+        console.error("Error during file save", err);
+    }
+}
+
+// Final script integration
+
+// Fetch and map data to newFormat
+
+saveData(newFormat);  // Replace existing save logic in your script
 }
 
 main();
+
