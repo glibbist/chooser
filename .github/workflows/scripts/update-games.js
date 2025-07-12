@@ -16,7 +16,7 @@ async function fetchGames() {
         if (response.status !== 200 || !response.data.machines) {
             throw new Error('Failed to fetch data');
         }
-        console.log(response.data.machines);
+        console.error(response.data.machines);
         return response.data.machines;
     } catch (error) {
         console.error(error.message);
