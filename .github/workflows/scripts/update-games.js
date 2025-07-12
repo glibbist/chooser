@@ -2,75 +2,89 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const API_URL = 'https://pinballmap.com/api/v1/locations/17135/machine_details.json';  // API address
-const LOCAL_DATA_PATH = path.join(process.env.GITHUB_WORKSPACE, 'data.json');  // Update path as per your repo
+const API_URL = 'https://pinballmap.com/api/v1/locations/17135/machine_details.json';
+const LOCAL_DATA_PATH = path.join(process.env.GITHUB_WORKSPACE, 'data.json');
 
-const calculateYearAndFloor = (year) => {
+const calculateYearAttributes = (year) => {
   const currentYear = new Date().getFullYear();
   const yearsDifference = currentYear - year;
   const floor = Math.floor(yearsDifference / 10);
-  const yearClass = year > 1980 ? floor : 1;  // Example logic; adjust based on requirement
+  const yearClass = year > 1980 ? floor : 1;  // Adjust this logic based on real requirements
   return { yearClass, floor };
 };
 
 const normalizeGameData = (rawGame) => ({
-  ...rawGame,
-  yearClass: calculateYearAndFloor(rawGame.year).yearClass,
-  floor: calculateYearAndFloor(rawGame.year).floor
+  id: rawGame.id,  // Ensure `id` is present
+  name: rawGame.name,
+  year: rawGame.year,
+  ...calculateYearAttributes(rawGame.year),
+  // Copy additional fields if needed
+  manufacturer: rawGame.manufacturer
 });
 
-// Fetch external API
-const fetchAPIJSON = async (url) => {
+async function fetchAPIJSON(url) {
   try {
     const response = await axios.get(url);
-    const apiGameData = response.data;
-    return apiGameData.map(normalizeGameData);  // Apply calculated fields
-  } catch (error) {
-    throw new Error("Failed to fetch external API: " + error.toString());
-  }
-};
+    const apiData = response.data;
 
-// Read local JSON, ensure exist for merge
-const readLocalJSON = (filePath) => {
-  if (!fs.existsSync(filePath)) throw new Error("Missing local data.json file (path)");
+    // Validate data
+    if (!Array.isArray(apiData)) {
+      throw new Error("Unexpected API data format: not an array");
+    }
+    
+    // Normalize
+    return apiData.map(normalizeGameData);
+    
+  } catch (error) {
+    console.error("Failed API request: URL:", url, "Error:", error.message);
+    throw new Error("Fetch error for API JSON" + error.toString());
+  }
+}
+
+function loadExistingJSON(filePath) {
+  if (!fs.existsSync(filePath)) throw new Error("File missing for JSON merge");
 
   const rawData = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(rawData);
-};
+  const jsonData = JSON.parse(rawData);
 
-// Merge external sources with local data
-const mergeUpdateAndDelete = (externalData, localData) => {
-  const localIdSet = new Set(localData.map(game => game.id));
-  externalData.forEach((game) => {
-    const { id, ...rest } = game;  // Separate id for comparison
-    if (localIdSet.has(id)) {
-      const existingLocalGame = localData.find(item => item.id === id);  // Modify in-place (better for same fields)
-      Object.assign(existingLocalGame, rest);  // Merge extended/calculated fields
+  console.log("Local data loaded, count:", jsonData.length);  // Verify count
+  return jsonData;
+}
 
-    } else {
-      localData.push(game);  // Add new games from API not present in local
+function syncFiles(apiData, localData) {
+  const localIds = new Set(localData.map(game => game.id));
+  const merged = [];
+
+  apiData.forEach(game => {
+    const { id, ...rest } = game;
+    if (localIds.has(id)) {  // Update if matches
+      const existingGame = localData.find(localGame => localGame.id === id);
+      Object.assign(existingGame, { ...rest });
+    } else { 
+      localData.push(game);  // New entry (add)
     }
   });
 
-  // Remove any local/ids no longer in external source
-  return localData.filter(game => externalData.some(ext => ext.id === game.id));
-};
+  // Filter out removed in API source
+  return localData.filter(game => apiData.some(apiGame => apiGame.id === game.id));
+}
 
-// Write the new combined JSON
-const writeJSONFile = (filePath, data) => {
-  const jsonContent = JSON.stringify(data, null, 2) + '\n';  // Pretty print + newline for clean view
-  fs.writeFileSync(filePath, jsonContent, 'utf-8');
-};
+function saveCombinedJSON(filePath, data) {
+  const jsonData = JSON.stringify(data, null, 2) + '\n';
+  fs.writeFileSync(filePath, jsonData, 'utf-8');
+  console.log(`Successfully written JSON to: ${filePath}`);
+}
 
+// Main execution
 (async () => {
   try {
     const fetchedAPIData = await fetchAPIJSON(API_URL);
-    const initialLocalData = readLocalJSON(LOCAL_DATA_PATH);
-    const processedData = mergeUpdateAndDelete(fetchedAPIData, initialLocalData);
-
-    writeJSONFile(LOCAL_DATA_PATH, processedData);
+    const initialLocalData = loadExistingJSON(LOCAL_DATA_PATH);
+    
+    const mergedData = syncFiles(fetchedAPIData, initialLocalData);
+    saveCombinedJSON(LOCAL_DATA_PATH, mergedData);
   } catch (error) {
-    console.error("Final merge encountered error:", error.message);
-    process.exitCode = 1;
+    console.error("Final error in workflow:", error);
+    process.exitCode = 1;  // Indicate failure
   }
 })();
