@@ -1,114 +1,60 @@
+// Dependencies setup
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 
-// Log environment verification
-console.log("GitHub Workspace:", process.env.GITHUB_WORKSPACE);
+const WORKSPACE_PATH = process.env.GITHUB_WORKSPACE;  // Define workspace path
+console.log("Workspace:", WORKSPACE_PATH);
 
-const DATA_PATH = path.join(process.env.GITHUB_WORKSPACE, 'data.json');
+const RAW_URL = "https://raw.githubusercontent.com/glibberist/chooser/main/dist/index.html";  // Direct path to data
 
-/** Fetch HTML and return parsed string */
-async function fetchHTML(url) {
+// File path for saving parsed JSON
+const DATA_FILE_PATH = path.join(WORKSPACE_PATH, 'data.json');
+
+async function fetchRawHTML(url) {
     try {
-        const { data } = await axios.get(url);
+        const { data } = await axios.get(url);  // Data retrieval
         return data;
-    } catch (err) {
-        console.error("Failed to fetch URL:", url, "Error:", err);
-        process.exit(1);  // Terminate script if no data
+    } catch (error) {
+        console.error("Unable to fetch HTML", url);
+        throw new Error("Fetch error: " + error.message);
     }
 }
 
-/** Parse HTML to JSON games */
-function parseHTMLToGames(html) {
+// Parse fetched HTML content to games structure
+function parseHTMLtoJSON(html) {
+    const gamePattern = /id="(\d+)".+?class="machine_link_full_width">(.+?)(?:<\/span>|<span class="machine_link">)(.+?)(?:<span|<div)/gsi;
     const games = [];
-    const lines = html.split("\n");  // Split by line to read sequentially
 
-    let currentGame = null;
-
-    for (const line of lines) {
-
-        if (line.includes('class="w3-col l2 m3 s4 xs6 w3-padding wf-card"')) {
-            currentGame = {};
-        }
-
-        if (currentGame) {
-            // ID fetch
-            const idMatch = line.match('<a id="(\\d+)">');
-            if (idMatch) currentGame.id = parseInt(idMatch[1]);
-
-            // Name match
-            const nameMatch = line.match('<span class="machine_link_full_width">(.+?)</span>');
-            if (nameMatch) currentGame.name = nameMatch[1].trim();
-
-            // Year match
-            const yearMatch = line.match('data-year="(\\d{4})"');
-            if (yearMatch) currentGame.year = parseInt(yearMatch[1]);
-
-            // Manufacturer
-            const manuMatch = line.match('<span class="machine_link_full_width manufacture_link">(.+?)</span>');
-            if (manuMatch) currentGame.manufacturer = manuMatch[1].trim();
-
-            // IPDB Link
-            const ipdbMatch = line.match('<a href="(.+?)">IPDB Link</a>');
-            if (ipdbMatch) currentGame.ipdb_link = ipdbMatch[1];
-
-            // IPDB Code
-            const ipdbCodeMatch = line.match('title="IPDB: (.+?)"');
-            if (ipdbCodeMatch) currentGame.ipdb_id = ipdbCodeMatch[1].trim();
-        }
-
-        if (line.includes('<div class="clearfix"></div>')) {
-            if (currentGame && currentGame.id) games.push(currentGame);
-            currentGame = null;  // Reset for new game
-        }
+    let match;
+    while (match = gamePattern.exec(html)) {
+        const [_, id, name, year_manufacturer] = match;
+        const [, year, manufacturer] = /^ (\d{4})([^<]+)/.exec(year_manufacturer) || [0, 0, 'unknown'];
+        games.push({
+            id: parseInt(id, 10),
+            name: name.trim(),
+            year: parseInt(year, 10),
+            manufacturer: manufacturer.trim()
+        });
     }
 
     return games;
 }
 
-/** Map games to JSON format */
-function mapGamesToJSON(games) {
-    return games.map((game) => {
-        const { id, name, year, manufacturer, ipdb_link, ipdb_id } = game;
-        const floorScore = Math.floor((new Date().getFullYear() - 2000 - year) / 10);
-        return {
-            ...game,
-            floor: floorScore > 0 ? floorScore : 1,
-            floorName: `Floor ${floorScore > 0 ? floorScore : ""}`
-        };
-    });
+// Save to JSON file in defined path
+function saveJSON(data, filePath) {
+    const dataDump = JSON.stringify(data, null, 2) + '\n';  // String format + newline
+    fs.writeFileSync(filePath, dataDump, 'utf8');
+    console.log("Saved data to", filePath);
 }
 
-/** Save JSON to filesystem */
-function saveData(data) {
-    if (!fs.existsSync(path.dirname(DATA_PATH))) {  // Ensure directory exists (should already via GH Actions checkout)
-        fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
-    }
-
-    // Writing JSON: 2 space indentation, newline
-    fs.writeFileSync(
-        DATA_PATH,
-        JSON.stringify(data, null, 2) + '\n'
-    );
-
-    console.log(`Saved JSON data to ${DATA_PATH}`);
-}
-
-// Main execution
-async function main() {
+(async () => {  // Self-executing async
     try {
-        const html = await fetchHTML("https://github.com/glibberist/chooser/blob/main/dist/index.html");
-        const games = parseHTMLToGames(html);
-        const formattedGames = mapGamesToJSON(games);
-        saveData(formattedGames);
-    } catch (err) {
-        console.error("Main execution error:", err);
-        process.exit(1);
+        const htmlContent = await fetchRawHTML(RAW_URL);
+        const gameData = parseHTMLtoJSON(htmlContent);
+        saveJSON(gameData, DATA_FILE_PATH);
+    } catch (globalError) {
+        console.error("Script error:", globalError.message);
+        process.exitCode = 1;  // Exit on failure
     }
-}
-
-// Execute when script initializes
-if (!module.parent) {
-    main();
-}
+})();
