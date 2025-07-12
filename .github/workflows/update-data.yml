@@ -31,12 +31,8 @@ jobs:
       id: json_check
       shell: bash
       run: |
-          git --no-pager diff --exit-code -- data.json
-          if [ $? -eq 0 ]; then
-              echo "RESULT_JSON=unchanged" >> $GITHUB_ENV  # Proper environment syntax
-          else
-              echo "RESULT_JSON=modified" >> $GITHUB_ENV  # Using ENV method
-          fi
+          echo "RESULT_JSON=modified" >> $GITHUB_ENV  # Using ENV method
+        
 
     # Conditional Push Logic
     - name: Perform GitHub Commit/Push *Only When Necessary*
