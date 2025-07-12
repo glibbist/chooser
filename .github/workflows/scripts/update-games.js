@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const DIRNAME = __dirname;
-const path = require('path');
 // Move up two levels from scripts/ and go into repo root
 const DATA_PATH = path.resolve(DIRNAME, '../../data.json');
 
