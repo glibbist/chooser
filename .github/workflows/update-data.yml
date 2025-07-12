@@ -1,26 +1,65 @@
-name: Execute Script Validation
+name: Validate and Update Pinball JSON
 
 on:
-  workflow_dispatch:  # Testing only
+  # Schedule (uncomment when ready):
+  # schedule:
+  #   - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:  # Test run manually first!
 
 jobs:
-  path_test:
+  update_data:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+    # === CHECKOUT REPO ====
+    - name: Checkout Repository   # Mandatory first step
+      uses: actions/checkout@v3
 
-      - name: Install Node.js + axios
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
+    # === NODE.JS & AXIOS ====
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
 
-      - name: Install Axios (again for sanity)
-        run: npm install axios
-      
-      - name: Check for Script Presence
-        run: ls -R  # List all files recursively from root
+    - name: Install axios for HTTP Requests (dependency)
+      run: npm install axios
 
-      - name: Run Script
-        run: node .github/workflows/scripts/update-games.js
+    # === EXECUTE SCRIPT ====
+    - name: Run Node Script (Script Execution)
+      run: node .github/workflows/scripts/update-games.js
+
+    - name: Verify JSON Change (File Changed?)
+      id: changedFiles
+      run: |
+          cd "${{ github.workspace }}"
+          CHANGED=$(git diff --name-only | grep 'data.json' || true)
+
+          if [ -n "$CHANGED" ]; then
+              echo "JSON File has changed!"
+              echo "file_changed=true" >> $GITHUB_ENV
+  
+              # Additionally display first lines to confirm changes
+              printf "\nFirst 20 lines of updated data.json:\n"
+              head -n20 data.json
+          else 
+              echo "JSON File has NO changes."
+              echo "file_changed=false" >> $GITHUB_ENV
+          fi
+
+    # === COMMIT LOGIC ====
+    - name: Commit & Push Updated data.json
+      if: env.file_changed == 'true'
+      run: |
+          cd "${{ github.workspace }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json
+          git status -s   # Optional status for debugging
+
+          if ! git diff-index --quiet HEAD; then
+              echo "> Commit new Data.json Update"
+              git commit -m "AUTO-UPDATE: Refresh data.json from remote API" || echo "Commit failed!"
+              git push origin main # << CHANGE TO YOUR 'default' branch if NOT main
+          else
+              echo "> No changes to commit; nothing to push."
+          fi
