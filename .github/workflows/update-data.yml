@@ -1,20 +1,22 @@
-name: Update and Sync GitHub Pinball JSON
+name: Pin-ball JSON Updater
 
 on:
-  # Comment this out while debugging:
-  # schedule:
-  #   - cron: '0 0 * * *' # Daily at midnight
   workflow_dispatch:
+    # Uncomment when testing complete:
+    # schedule:
+    #   - cron: '0 0 * * *'  # Daily
 
 jobs:
-  update_pinball_json:
+  auto-update:
     runs-on: ubuntu-latest
 
     steps:
+    # First Step: Checkout
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Setup Node.js v20
+    # Setup Environment
+    - name: Set Up Node.js v20
       uses: actions/setup-node@v3
       with:
         node-version: 20
@@ -22,39 +24,41 @@ jobs:
     - name: Install Axios
       run: npm install axios
 
+    # Run Script
     - name: Execute Data Update Script
-      id: update-script
       run: |
-          cd "${{ github.workspace }}"  # Always navigate to working repo root
+          cd "${{ github.workspace }}"
           node .github/workflows/scripts/update-games.js
 
-    - name: Verify JSON Data Updates (Optional Debug)
-      run: |
-          echo "JSON file after script run:"
-          cat data.json   # Display content to review
-
-    - name: Check for JSON Data Changes
+    # File Checks: (JSON Update Confirmation)
+    - name: Confirm JSON Updated
       id: file_check
+      shell: bash
       run: |
-        git --no-pager diff --exit-code -- data.json  # Scoped diff test!
-        echo "CHANGED_STATUS=$?" >> $GITHUB_ENV
-
-    - name: Commit & Push if Data Changed
-      if: env.CHANGED_STATUS != '0'   # Status=0 means NO changes
-      run: |
-          set -ex  # Enables debug for any fail steps
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add data.json  # Only track JSON modifications
-          
-          diff_msg=$(git diff --staged --color)
-          if [[ -n "$diff_msg" ]]; then
-              echo "Auto-changes being committed"
-              git commit -m "AUTO-COMMIT: Synced data.json from latest fetch"
-              git push origin main  # << REPLACE with your branch name
+          CHANGE_STATUS=$(git diff --exit-code data.json)
+          if [ $? -eq 0 ]; then  
+              # No changes, set ENV to false
+              echo "::set-env name=CHANGES_MADE::false"
           else
-              echo "No changes to commit; aborting"
-              git status
+              echo "::set-env name=CHANGES_MADE::true" 
+          fi
+
+    # Conditionally Commit
+    - name: Push Data Updates (If Changed)
+      if: env.CHANGES_MADE == 'true'
+      run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          # Only stage updated file! (JSON)
+          git add data.json
+
+          # Check staged changes before commit
+          DIFF_SUMMARY=$(git diff --staged)
+          if [ -n "${DIFF_SUMMARY// }" ]; then   # Check if space-stripped string has content
+              echo "Changes detected; proceeding to commit/push:"
+              git commit -m 'AUTO-UPDATE: Sync data.json'
+              git push origin main  # Adjust for correct branch
+          else
+              echo "No changes detected post-script run"
           fi
