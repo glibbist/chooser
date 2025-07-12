@@ -1,13 +1,15 @@
 const axios = require('axios');
 const fs = require('fs');
+const path = require('path');
+
+const DATA_PATH = path.resolve(__dirname, '../data.json');
 
 function loadExistingData() {
-    if (fs.existsSync('data.json')) {
-        const existing = fs.readFileSync('data.json', 'utf8');
+    if (fs.existsSync(DATA_PATH)) {
+        const existing = fs.readFileSync(DATA_PATH, 'utf8');
         return JSON.parse(existing);
-    } else {
-        return [];
     }
+    return [];
 }
 
 async function fetchGames() {
@@ -16,7 +18,6 @@ async function fetchGames() {
         if (response.status !== 200 || !response.data.machines) {
             throw new Error('Failed to fetch data');
         }
-        console.error(response.data.machines);
         return response.data.machines;
     } catch (error) {
         console.error(error.message);
@@ -33,10 +34,9 @@ function processGameData(inputGames,existingData) {
             return 2;
         })();
         
-        // Create Common Name
-        const commonName = game.name.replace(/^The\s+/,'').replace(/(\(Gold\)|\s\(\d{4}\))/g,'').replace(/\s\(Pro\)|\s\(LE\)|\s\(Premium\)/,'');
+        // Common name with 'The ' removal
+        const commonName = game.name.replace(/^The\s+/i,'');
         
-        // Merge data
         return {
             id: game.id,
             name: game.name,
@@ -46,35 +46,28 @@ function processGameData(inputGames,existingData) {
             ipdb_id: game.ipdb_id,
             kineticist_url: game.kineticist_url,
             opdb_id: game.opdb_id,
-            commonName,
-            floor: (existingEntry ? existingEntry.floor : 1), // Keep existing floor or default to 1
-            yearClass, // Calculate only if new entry
+            commonName,  // Set commonName here
+            floor: existingEntry ? existingEntry.floor : 1, // Preserve floor if exists, otherwise 1
+            yearClass  // Calculate new
         };
     });
 
-    // Remove games no longer present in API request
     existingData.forEach(game => {
         if (!allGames.find(g => g.id === game.id)) {
             allGames.push(game);
         }
     });
 
+    allGames.sort((a,b) => a.id - b.id); // Sort by id
     return allGames;
 }
 
 async function main(){
-    // Get fresh data & existing data
     const inputGames = await fetchGames();
     const existingData = loadExistingData();
-
-    // Sync datasets
     const combinedData = processGameData(inputGames,existingData);
-    combinedData.sort((a,b) => a.id > b.id ? 1 : a.id === b.id ? 0 : -1);
 
-    fs.writeFileSync(
-        'data.json', 
-        JSON.stringify(combinedData,null,2)
-    );  
+    fs.writeFileSync(DATA_PATH, JSON.stringify(combinedData,null,2));
 }
 
 main();
