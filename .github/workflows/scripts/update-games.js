@@ -3,148 +3,112 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-// Confirm Root Path
-const GITHUB_WORKSPACE = process.env.GITHUB_WORKSPACE;
-console.log("GitHub Workspace:", GITHUB_WORKSPACE);
+// Log environment verification
+console.log("GitHub Workspace:", process.env.GITHUB_WORKSPACE);
 
-// Data save path
-const DATA_PATH = path.join(GITHUB_WORKSPACE, 'data.json');
+const DATA_PATH = path.join(process.env.GITHUB_WORKSPACE, 'data.json');
 
-/** Fetch Raw Website HTML */
+/** Fetch HTML and return parsed string */
 async function fetchHTML(url) {
     try {
-        const response = await axios.get(url);
-        return response.data;
+        const { data } = await axios.get(url);
+        return data;
     } catch (err) {
-        console.error("Unable to fetch data from:", url);
-        process.exit(1);
+        console.error("Failed to fetch URL:", url, "Error:", err);
+        process.exit(1);  // Terminate script if no data
     }
 }
 
-/** Convert HTML data to structured array */
-function parseHTMLToGames(htmlString) {
-    const rl = readline.createInterface({
-        input: Buffer.from(htmlString, 'utf8')
-    });
-
+/** Parse HTML to JSON games */
+function parseHTMLToGames(html) {
     const games = [];
+    const lines = html.split("\n");  // Split by line to read sequentially
+
     let currentGame = null;
 
-    for await (const line of rl) {
+    for (const line of lines) {
+
         if (line.includes('class="w3-col l2 m3 s4 xs6 w3-padding wf-card"')) {
             currentGame = {};
         }
 
         if (currentGame) {
-            const idMatch = line.match(new RegExp('<a\s+id="(.*?)"'));
-            if (idMatch) {
-                currentGame.id = parseInt(idMatch[1], 10);
-            }
+            // ID fetch
+            const idMatch = line.match('<a id="(\\d+)">');
+            if (idMatch) currentGame.id = parseInt(idMatch[1]);
 
-            const nameMatch = line.match(new RegExp('<span\s+class="machine_link_full_width">(.*?)</span>'));
-            if (nameMatch) {
-                currentGame.name = nameMatch[1].trim();
-            }
+            // Name match
+            const nameMatch = line.match('<span class="machine_link_full_width">(.+?)</span>');
+            if (nameMatch) currentGame.name = nameMatch[1].trim();
 
-            const yearMatch = line.match(/data-year="(.*?)"/);
-            if (yearMatch) {
-                currentGame.year = parseInt(yearMatch[1], 10);
-            }
+            // Year match
+            const yearMatch = line.match('data-year="(\\d{4})"');
+            if (yearMatch) currentGame.year = parseInt(yearMatch[1]);
 
-            const manufacturerMatch = line.match(new RegExp('<span\s+class="machine_link_full_width manufacture_link"(.*?)>(.*?)</span>'));
-            if (manufacturerMatch || manufacturerMatch[2].includes('manufacturer_link')) {
-                currentGame.manufacturer = manufacturerMatch[2].trim();
-            }
+            // Manufacturer
+            const manuMatch = line.match('<span class="machine_link_full_width manufacture_link">(.+?)</span>');
+            if (manuMatch) currentGame.manufacturer = manuMatch[1].trim();
 
-            if (line.match(/>IPDB Link/i)) {
-                const ipdbLinkMatch = line.match(/href="(.*?)"/);
-                if (ipdbLinkMatch) {
-                    currentGame.ipdb_link = ipdbLinkMatch[1];
-                }
-            }
+            // IPDB Link
+            const ipdbMatch = line.match('<a href="(.+?)">IPDB Link</a>');
+            if (ipdbMatch) currentGame.ipdb_link = ipdbMatch[1];
 
-            const ipdbCodeMatch = line.match(/>(IPDB:.*?)</);
-            if (ipdbCodeMatch) {
-                currentGame.ipdb_id = ipdbCodeMatch[1].replace('IPDB:', '').trim();
-            }
+            // IPDB Code
+            const ipdbCodeMatch = line.match('title="IPDB: (.+?)"');
+            if (ipdbCodeMatch) currentGame.ipdb_id = ipdbCodeMatch[1].trim();
         }
 
         if (line.includes('<div class="clearfix"></div>')) {
-            if (currentGame?.id) {
-                games.push(currentGame);
-            }
-            currentGame = {};
+            if (currentGame && currentGame.id) games.push(currentGame);
+            currentGame = null;  // Reset for new game
         }
     }
+
     return games;
 }
 
-/**
- * Convert games fetched into desired JSON format
- * @param {Array} games
- * @returns {Array<>: new object format
- */
+/** Map games to JSON format */
 function mapGamesToJSON(games) {
-    return games.map(game => {
-        const {
-            id,
-            name,
-            year,
-            manufacturer,
-            ipdb_link,
-            ipdb_id
-        } = game;
-
-        let floor = 0;   // Default
-        let year_floor = Math.floor((new Date().getFullYear() - 2000 - year) / 10);
-        if (year > 1979) {
-            // Adjust older pinball machine allocations
-            floor = year_floor > 0 ? year_floor : 1;
-        }
-
+    return games.map((game) => {
+        const { id, name, year, manufacturer, ipdb_link, ipdb_id } = game;
+        const floorScore = Math.floor((new Date().getFullYear() - 2000 - year) / 10);
         return {
-            id: id,
-            name: name,
-            year: year,
-            manufacturer: manufacturer,
-            ipdb_link: ipdb_link,
-            ipdb_id: ipdb_id,
-            commonName: name,  // Simple mapping [if needed modify appropriately]
-            opdb_id: `G${Math.floor(Math.random() * 800)}`, // Example logic replace as needed
-            floor: floor,
-            yearClass: year_floor  
-        }
+            ...game,
+            floor: floorScore > 0 ? floorScore : 1,
+            floorName: `Floor ${floorScore > 0 ? floorScore : ""}`
+        };
     });
 }
 
-/**
- * Save data to JSON
- */
+/** Save JSON to filesystem */
 function saveData(data) {
-    try {
-        if (!fs.existsSync(path.dirname(DATA_PATH))) {
-            fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
-        }
-        const jsonPayload = JSON.stringify(data, null, 2) + '\n';
-        fs.writeFileSync(DATA_PATH, jsonPayload);
-        console.log(`Saved JSON to ${DATA_PATH}`);
-    } catch (err) {
-        console.error("Failed to save JSON: ", err);
-        process.exit(1);
+    if (!fs.existsSync(path.dirname(DATA_PATH))) {  // Ensure directory exists (should already via GH Actions checkout)
+        fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
     }
+
+    // Writing JSON: 2 space indentation, newline
+    fs.writeFileSync(
+        DATA_PATH,
+        JSON.stringify(data, null, 2) + '\n'
+    );
+
+    console.log(`Saved JSON data to ${DATA_PATH}`);
 }
 
-// Main function
+// Main execution
 async function main() {
     try {
         const html = await fetchHTML("https://github.com/glibberist/chooser/blob/main/dist/index.html");
         const games = parseHTMLToGames(html);
-        const formattedJSON = mapGamesToJSON(games);
-        saveData(formattedJSON);
+        const formattedGames = mapGamesToJSON(games);
+        saveData(formattedGames);
     } catch (err) {
-        console.error("Script execution failed: ", err);
+        console.error("Main execution error:", err);
+        process.exit(1);
     }
 }
 
-// Execute main
-main();
+// Execute when script initializes
+if (!module.parent) {
+    main();
+}
