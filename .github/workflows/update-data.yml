@@ -1,55 +1,70 @@
 name: Pinball JSON Maintenance
 
-on:
-  workflow_dispatch: # Trigger manually
-  # schedule:  # Enable when ready
-  #   - cron: '0 0 * * *'
+on: 
+  workflow_dispatch:
+  # schedule:  # Uncomment when prod ready
+  #   - cron: '0 0 * * *' # Daily
 
 jobs:
-  automaintain:
+  auto_maintain_pinball:
     runs-on: ubuntu-latest
+    # Ensures Workflow's permissions
+    permissions:
+      contents: write  # Allow writing content
 
     steps:
-    - name: Secure Repository
+    - name: Secure Repo Clone
       uses: actions/checkout@v3
+      with: 
+        fetch-depth: 0  # Full history needed for proper diff-based commits
+        token: ${{ github.token }}
 
-    - name: Setup Node.js Environment
+    - name: Setup Node.js Runtime
       uses: actions/setup-node@v3
       with:
         node-version: 20
 
+    # Install necessary dependencies (axios)
     - name: Install Axios
       run: npm install axios
 
-    - name: Execute Script File
+    - name: Execute Update Script
       run: |
-          cd "${{ github.workspace }}"
-          node .github/workflows/scripts/update-games.js
+        cd "${{ github.workspace }}"
+        node .github/workflows/scripts/update-games.js
 
-     # Scoped File Verification
-    - name: Verify JSON Updates
-      id: json_check
+     # Debugging Output
+     - name: Display Updated JSON
+       run: |
+         echo "Updated data.json:"
+         cat "${{ github.workspace }}data.json"
+
+    - name: Capture JSON Change Status
+      id: change_status
       shell: bash
       run: |
-          echo "RESULT_JSON=modified" >> $GITHUB_ENV  # Using ENV method
-        
+        git --no-pager diff --exit-code data.json
+        echo "HAS_CHANGE=$( [ $? -eq 0 ] && echo false || echo true )" >> $GITHUB_ENV
 
-    # Conditional Push Logic
-    - name: Perform GitHub Commit/Push *Only When Necessary*
-      if: env.RESULT_JSON == 'modified'
+    # Git Configuration
+    - name: Setup Git Author Configurations
+      if: env.HAS_CHANGE == 'true'  # Only when there's a change
       run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-          git add data.json  # Add modifications
+    # Conditional Commit & Push 
+    - name: Commit and Push JSON Changes
+      if: env.HAS_CHANGE == 'true'
+      run: |
+        git add data.json  # Prepare to commit the changes
 
-          # Commit message with proper check (prevent blanks)
-          if git diff-index --quiet HEAD; then
-              echo "No differences remain after git add; abort."  
-          else
-              echo "Committing updated content..."
-              git commit -m 'AUTO-UPDATE: New data.json modifications in play'
-
-              # Push back to repository
-              git push origin main  # << Adjust branch as needed
-          fi
+        # Push changes
+        if git diff-index --quiet HEAD; then
+            echo "No updates to commit; proceeding without commit"
+        else
+            git commit -m 'AUTO COMMIT: Sync updated data.json'
+            git push --set-upstream origin main --force  # Adjust based on your branch
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}
