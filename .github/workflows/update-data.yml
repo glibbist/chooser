@@ -1,44 +1,21 @@
-name: Sync Pinball Data
+# .github/workflows/test-basic.yml
+# Create THIS file instead of modifying existing
+name: Test Workflow Execution
 
 on:
-  schedule:
-    - cron:  '0 0 * * *' # Daily at midnight
-  workflow_dispatch:  # Allow manual testing
+  # Test with scheduled run disabled temporarily
+  #schedule:
+  #  - cron:  '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
-  updateData:
-    name: Fetch data & sync
+  basic-job:
+    name: Test Basic Job
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Install Node.js (v18)
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Install Axios (external dependency)
-        run: npm install axios
-
-      - name: Execute Script
-        run: node .github/workflows/scripts/update-games.js
-
-      - name: Check if Data Needs Commit
-        id: diffCheck
-        run: |
-          git diff --exit-code data.json  # Focus on *this* file only
-         # Skip if previous `data.json` commit (ignore untracked files)
-          if (! $?); then
-            echo "hasChanges=true" >> $GITHUB_ENV  # Changes detected
-          fi
-
-      - name: Commit JSON Updates (Only When Changed)
-        if: env.hasChanges == 'true'
-        run: |
-          cd "${{ github.workspace }}"  # Return to CWD
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json 
-          git commit -m "Auto-sync data.json (action)" && git push origin main  # Use correct main/default!
+      - name: Report Status
+        run: echo 'Workflow execution test successful!'
