@@ -1,56 +1,56 @@
-name: JSON Auto-Syncer (Pin-ball data)
+name: Automatic Pinball Data Updater
 
-# Triggers: manual dispatch or scheduled updates
+# Triggers: On dispatch or schedule
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # Daily UTC midnight (optional)
+    - cron: '0 2 * * *'  # Example: 2 AM daily
 
 jobs:
-  data_sync:
+  sync:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for Git push operations
+      contents: write   # Git permission
 
     steps:
-    - name: Clone Repo
-      uses: actions/checkout@v4
+    - name: Repository Checkout
+      uses: actions/checkout@v4  
       with:
-        fetch-depth: 0  # All versions for history checks
-
-    - name: Setup Node.js
+        fetch-depth: 0  # All history enables diff detection
+    
+    - name: Set up Node.js Environment
       uses: actions/setup-node@v4
-      with:
-        node-version: 20  # Validate compatibility
+      with: 
+        node-version: 20
 
-    - name: Install axios (Dependency)
+    - name: Install Dependency (axios)
       run: npm install axios
 
-    - name: Run Sync Script
-      run: |
+    - name: Run Data Merge Script
+      run: |  
         cd "${{ github.workspace }}"
-        node .github/workflows/scripts/update-games.js   # Full path
+        node .github/workflows/scripts/update-games.js  # Correct path if different
 
-    - name: Verify JSON Output
+    - name: Display Merged Data 
       run: cat "${{ github.workspace }}/data.json"
 
-    - name: Check Version Control Changes
-      id: change_check
+    - name: Check Changes for Commit
+      id: check_updates
       run: git diff --exit-code data.json
-      continue-on-error: true  # Allow step even with differences
+      continue-on-error: true  # Step progresses with or w/out differences
 
-    - name: Git Prep for Commit
-      if: ${{ steps.change_check.outcome == 'failure' }}
+    - name: Git Setup (for commit)
+      if: ${{ steps.check_updates.outcome == 'failure' }}
       run: |
-        git config user.name 'github-actions[bot]'
-        git config user.email 'github-actions[bot]@users.noreply.github.com'
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Push Data.json Update
-      if: ${{ steps.change_check.outcome == 'failure' }}
+    - name: Commit/Push Updated JSON
+      if: ${{ steps.check_updates.outcome == 'failure' }}
       run: |
         git add data.json
-        git commit -m "AUTO-COMMIT: Pin-ball synced JSON update"
-        git push origin main  # Adjust to target branch if needed
+        git commit -m "AUTO-COMMIT: Merged and sync'ed pinball JSON"
+        git push origin main  # Adjust for your repo's active branch
 
-      env:  # Environment vars
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Automatic auth
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACTIONS_PAT }}  # Grant Git workflow auth
