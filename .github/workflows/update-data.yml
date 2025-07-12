@@ -1,71 +1,63 @@
-name: Pinball JSON Maintenance
+name: Pin-ball JSON Syncer
 
-on: 
+on:
   workflow_dispatch:
-  # Example: For future scheduling, uncomment
+  # Schedule prod (uncomment)
   # schedule:
-  #   - cron: '0 0 * * *' # Runs daily at midnight
+  #  - cron: '0 0 * * *'
 
 jobs:
-  auto_pinball_sync:
+  data_sync:
     runs-on: ubuntu-latest
-    # Ensure permissions
+    # GitHub Token Permissions
+    env:
+      CI: true
     permissions:
       contents: write
 
     steps:
-    - name: Checkout All Branch Commits
+    - name: Clone Repository + Auth via Token
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0 # Complete history needed
+        fetch-depth: 0  # All commits for git diff analysis
+        token: ${{ secrets.GITHUB_TOKEN }}  # Preauth Token
 
-    - name: Setup Node for Script 
+    - name: Set Up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 20
 
-    - name: Axios Library Installation
+    - name: Install axios (HTTP/S)
       run: npm install axios
 
-    - name: Run Node.js Data Collection Script
+    - name: Execute Pin-ball Data Sync Script
       run: |
-        cd "${{ github.workspace }}"
-        node .github/workflows/scripts/update-games.js
+          cd "${{ github.workspace }}"
+          node .github/workflows/scripts/update-games.js
 
-    - name: Verify JSON File Created & Formatting
+    - name: Display JSON Processed Data
       run: |
-        echo "JSON data post-script:"
-        ls -la "${{ github.workspace }}"
-        cat "${{ github.workspace }}/data.json"  # Ensure path and extension
-        
-    - name: Capture Update Status (JSON has new changes)
-      id: json_validation
+          echo "--------- Processed JSON data.json file: ----------"
+          cat "${{ github.workspace }}/data.json"
+  
+    - name: Confirm JSON Updates
+      id: changes
       run: |
-        git diff --exit-code data.json
-        if [ $? -eq 0 ]; then
-          echo "CHANGES_DETECTED=false" >> $GITHUB_ENV
-        else
-          echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
-        fi
+          git diff --exit-code data.json  # Compares exact changes (inc. newlines)
+          echo "::set-output name=has_changed::$?"  # Exit 0 = no change
 
-    - name: Setup Git Config (Commit)
-      if: env.CHANGES_DETECTED == 'true'
+    - name: Git Config and Commit (if changes)
+      if: steps.changes.outputs.has_changed != '0'
       run: |
         git config --global user.name 'github-actions[bot]' 
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-    # Commit & Push: Only if changes detected
-    - name: Commit and Push Updates
-      if: env.CHANGES_DETECTED == 'true'
-      run: |
-        # Stage updates
-        git add data.json  # Path inside workspace
+        git add data.json  # Prepare stage
 
-        # Confirm staged additions
-        git diff --cached --stat
-        echo "Committing updated JSON..."
-        git commit -m 'AUTO-UPD: Pin-ball data sync commit'
-        git push origin main  # << Adjust main to whatever repo branch
+        git diff --cached  # Pre-commit verify
+        git commit -m "AUTO-UPD: Scheduled JSON sync applied latest"
 
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This comes pre-configured
+        git push origin main  # << Substitute main with yours
+      # Auth with GitHub token
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Repository auto-configured
