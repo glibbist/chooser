@@ -1,7 +1,11 @@
 const axios = require('axios');
 const fs = require('fs');
 const { resolve } = require('path');
-const DATA_PATH = "/data.json";
+
+
+const DATA_PATH = process.env.GITHUB_WORKSPACE + '/data.json';
+
+console.log("Destination Path: " + DATA_PATH); 
 
 function processEntries(apiData, existingData) {
     const allGames = apiData.map(game => {
