@@ -3,109 +3,108 @@ const fs = require('fs');
 const path = require('path');
 
 const API_URL = 'https://pinballmap.com/api/v1/locations/17135/machine_details.json';
+const REPOS_JSON_PATH = path.join(process.env.GITHUB_WORKSPACE, './data.json');
 
-// Path to repo's JSON
-const DATA_PATH = path.join(process.env.GITHUB_WORKSPACE, './data.json');
-
-// Improved yearClass calculation
 const getYearClass = (year) => (
   (year < 1980) ? 0
-   : (year <= 1997) ? 1
-   : 2
+  : (year <= 1997) ? 1
+  : 2
 );
 
-// Parse API game properties
-const normalizeAPIEntry = (entry) => ({
-  id: entry.id,
-  name: entry.name,
-  year: entry.year,
-  manufacturer: entry.manufacturer,
-  ipdb_link: entry.ipdb_link,                   // Ensure these keys remain/merged
-  ipdb_id: entry.ipdb_id,
-  kineticist_url: entry.kineticist_url,
-  opdb_id: entry.opdb_id,
-  
-  // Calculated values
-  yearClass: getYearClass(entry.year),
-  
-  // Default floor on API; local retains these values
-  floor: entry.floor === undefined ? 1 : entry.floor,
-
-  // Process common name from 'name' attribute
-  commonName: entry.name.replace(/^The /, '')   // Remove leading "The "
+const processAPIEntry = (rawData) => ({
+  id: rawData.id,
+  name: rawData.name,
+  year: rawData.year,
+  manufacturer: rawData.manufacturer,
+  ipdb_link: rawData.ipdb_link,
+  ipdb_id: rawData.ipdb_id,
+  kineticist_url: rawData.kineticist_url,
+  opdb_id: rawData.opdb_id,
+  commonName: rawData.name.replace(/^The /, ''),
+  yearClass: getYearClass(rawData.year)
+  // No `floor` here, will inherit from local if matched
 });
 
-// Fetch + validate API response
-async function fetchData(url) {
+// Fetch + validation
+async function getApiGames(url) {
   const response = await axios.get(url);
   if (!response.data.machines || !Array.isArray(response.data.machines)) {
-    throw new Error('Malformed API Response: Missing/Invalid "machines"');
+    throw new Error("API: No 'machines' array present");
   }
-  
-  return response.data.machines.map(normalizeAPIEntry);  // Map all game properties
+
+  return response.data.machines.map(processAPIEntry);
 }
 
-// Read existing file and handle any missing content
-const loadExistingGames = (path) => {
-  if (!fs.existsSync(path)) throw new Error(`Missing JSON file: ${path}`);
+// Read existing file
+const loadExistingGames = (filePath) => {
+  if (!fs.existsSync(filePath)) throw new Error(`Missing JSON file: ${filePath}`);
 
-  const content = fs.readFileSync(path, 'utf-8');
-  return JSON.parse(content);
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const games = JSON.parse(content);
+  console.log(`Loaded existing data: ${games.length} games`);
+  return games;
 };
 
-// Merge with API data (existing and new entries)
-const syncGames = (apiGames, localGames) => {
-  const outputArray = [];
-  const apiIds = new Set(apiGames.map(game => game.id));
+// Merge logic
+const mergeAndAdjustGames = (apiEntries, localEntries) => {
+  const merged = [];
+  const existingIds = new Set(localEntries.map(game => game.id));
 
-  for (let localGame of localGames) {
-    const match = apiGames.find(item => item.id === localGame.id);
-    if (match) {
-      // Clone (original structure/floor stay same; yearClass updates)
-      outputArray.push({
-        ...localGame,
-        ...match,
-        yearClass: match.yearClass,  // Force yearClass update
-        commonName: match.commonName,  // Apply updated common name
+  for (let apiGame of apiEntries) {
+    const matchedLocal = localEntries.find(local => local.id === apiGame.id);
+    
+    if (matchedLocal) {
+      // Combine API updates & existing attributes (merge)
+      merged.push({
+        id: apiGame.id,
+        name: apiGame.name,
+        year: apiGame.year,
+        yearClass: apiGame.yearClass,  // Updated
+        commonName: apiGame.commonName,
+        manufacturer: apiGame.manufacturer,
+        ipdb_link: apiGame.ipdb_link,
+        ipdb_id: apiGame.ipdb_id,
+        kineticist_url: apiGame.kineticist_url,
+        opdb_id: apiGame.opdb_id,
+        floor: matchedLocal.floor,  // Preserve local 'floor'
       });
-
-    } else if (apiIds.has(localGame.id)) {
-      const apiMatch = apiGames.find(item => item.id === localGame.id);
-      if (apiMatch) outputArray.push(apiMatch);  // New API entries (no overwrite)
+      
+    } else {
+      // Non-existing (new additions)
+      merged.push({
+        ...apiGame,
+        floor: 1  // Default for new entries
+      });
     }
   }
+  
+  // Cleanup non-present ids in API + remove old/deprecated
+  const clean = merged.filter(data => apiEntries.some(api => api.id === data.id));
 
-  // Remove any ids not in active API list but present in local
-  for (let apiGame of apiGames) {
-    let existing = outputArray.find(item => item.id === apiGame.id);
-    if (!existing) {
-      outputArray.push(apiGame);  // Append (merged, full list/all props preserved)
-    }
-  }
-
-  return outputArray;
+  console.log(`Merged output: ${clean.length} games`);
+  return clean;
 };
 
-// Write completed JSON file
-const writeGameData = (path, data) => fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+// Write combined file
+const writeMergedFile = (filePath, data) => {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  console.log(`Successfully wrote to ${filePath}`);
+};
 
 // Final execution
 (async () => {
   try {
-    console.log('Synchronizing Pinball Machines from API...');
-  
-    // Execute core sync logic
-    const apiGames = await fetchData(API_URL);
-    const localGames = loadExistingGames(DATA_PATH);
-    const mergedData = syncGames(apiGames, localGames);
-    console.log('Merged result:', mergedData.length);
-  
-    // Commit saved result
-    writeGameData(DATA_PATH, mergedData);
-    console.log(`Successfully written to ${DATA_PATH}`);
+    console.log('Syncing data...');
 
+    const apiGames = await getApiGames(API_URL);
+    const localGames = loadExistingGames(REPOS_JSON_PATH);
+    const mergedFinalData = mergeAndAdjustGames(apiGames, localGames);
+  
+    writeMergedFile(REPOS_JSON_PATH, mergedFinalData);
+
+    console.log('Pinned-sync operation complete!');
   } catch (error) {
-    console.error('Critical error', error.message);
+    console.error('Critical error: ', error);
     process.exitCode = 1;
   }
 })();
