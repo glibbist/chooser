@@ -1,71 +1,26 @@
-# .github/workflows/test-basic.yml
-# Create THIS file instead of modifying existing
-name: Test Workflow Execution
+name: Execute Script Validation
 
 on:
-  # Test with scheduled run disabled temporarily
-  #schedule:
-  #  - cron:  '0 0 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # Testing only
 
 jobs:
-  basic-job:
-    name: Test Basic Job
+  path_test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Report Status
-        run: echo 'Workflow execution test successful!'
-# add these steps
-  test-step1:
-    name: Setup Environment
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
+      - name: Install Node.js + axios
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install axios
+      - name: Install Axios (again for sanity)
         run: npm install axios
-# Add this as test-step2
-  test-step2:
-    name: Run Script (Dry)
-    needs: test-step1  # Sequentially depend on previous
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Node.js Script 
-        run: node .github/workflows/scripts/update-games.js
-  test-step3:
-    runs-on: ubuntu-latest
-    name: Verify & Commit Changes
-
-    needs:
-      - test-step2
-
-    steps:
-      - name: Checkout Repository Fresh
-        uses: actions/checkout@v3
       
-      - name: Add Test File
-        run: |
-          echo "This is a test file" > test.txt
-          git add test.txt
-          
-      - name: Check for Changes (Debug Only)
-        id: file_verify
-        run: echo "has_diff=$(git status --porcelain | grep test.txt)" >> $GITHUB_ENV
-          
-      - name: Commit Test File Change 
-        if: env.has_diff != ''          
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "Test file change for debugging purposes" && git push origin main  # << USE YOUR DEFAULT
+      - name: Check for Script Presence
+        run: ls -R  # List all files recursively from root
+
+      - name: Run Script
+        run: node .github/workflows/scripts/update-games.js
