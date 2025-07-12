@@ -6,7 +6,7 @@ const path = require('path');
 const WORKSPACE_PATH = process.env.GITHUB_WORKSPACE;  // Define workspace path
 console.log("Workspace:", WORKSPACE_PATH);
 
-const RAW_URL = "https://raw.githubusercontent.com/glibbist/chooser/main/dist/index.html";  // Direct path to data
+const RAW_URL = "https://raw.githubusercontent.com/glibbist/chooser/main/index.html";  // Direct path to data
 
 // File path for saving parsed JSON
 const DATA_FILE_PATH = path.join(WORKSPACE_PATH, 'data.json');
