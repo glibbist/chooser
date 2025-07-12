@@ -38,10 +38,16 @@ jobs:
             echo "is_git_clean=false" >> $GITHUB_ENV
           fi
 
-      - name: Commit Only When Changed
+      - name: Commit Changes if Detected
         if: env.is_git_clean == 'false'
         run: |
+          cd "${{ github.workspace }}"  # Important: Change back to repo root directory
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "Automated: data.json updated from action run"
-          git push origin main  # << Replace 'main' with your default branch
+          git add data.json  
+          if [ -z "$(git status --porcelain)" ]; then
+              echo "No changes to commit, skipping commit"
+          else
+              git commit -m "Automatic Update: data.json changed"
+              git push origin main  # << Replace with your default!
+          fi
