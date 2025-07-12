@@ -34,8 +34,8 @@ jobs:
         node .github/workflows/scripts/update-games.js
 
      # Debugging Output
-     - name: Display Updated JSON
-       run: |
+    - name: Display Updated JSON
+      run: |
          echo "Updated data.json:"
          cat "${{ github.workspace }}data.json"
 
