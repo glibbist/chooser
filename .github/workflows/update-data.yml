@@ -1,0 +1,50 @@
+name: Automatic Pinball Data Updater
+
+# Triggers: On dispatch or schedule
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Example: 2 AM daily
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # Git permission
+
+    steps:
+    - name: Repository Checkout
+      uses: actions/checkout@v4  
+      with:
+        fetch-depth: 0  # All history enables diff detection
+    
+    - name: Set up Node.js Environment
+      uses: actions/setup-node@v4
+      with: 
+        node-version: 20
+
+    - name: Install Dependency (axios)
+      run: npm install axios
+
+    - name: Run Data Merge Script
+      run: |  
+        cd "${{ github.workspace }}"
+        node .github/workflows/scripts/update-games.js  # Correct path if different
+
+    - name: Check Changes for Commit
+      id: check_updates
+      run: git diff --exit-code data.json
+      continue-on-error: true  # Step progresses with or w/out differences
+
+    - name: Git Setup (for commit)
+      if: ${{ steps.check_updates.outcome == 'failure' }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Commit/Push Updated JSON
+      if: ${{ steps.check_updates.outcome == 'failure' }}
+      run: |
+        git add data.json
+        git commit -m "AUTO-COMMIT: Merged and sync'ed pinball JSON"
+        git push origin main  # Adjust for your repo's active branch

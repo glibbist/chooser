@@ -1,0 +1,59 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👇🪩</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .portal-button {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 2.5rem;
+            color: white;
+            transition: all 0.3s ease;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .portal-button:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+        
+        #picker {
+            background: #0066cc;
+        }
+        
+        #chooser {
+            background: #4a5568;
+        }
+        
+        @media (max-width: 480px) {
+            .portal-button {
+                font-size: 2rem;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="picker.html" class="portal-button" id="picker">Random Pin</a>
+    <a href="chooser.html" class="portal-button" id="chooser">
+        👇 Player Chooser
+    </a>
+</body>
+</html>

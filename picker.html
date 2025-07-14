@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinball Selector</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .filter-btn {
+            flex: 1 1 auto;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            cursor: pointer;
+        }
+        .filter-btn.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        #persist-btn {
+            width: 20%;
+            padding: 15px;
+            margin: 5px 0;
+            font-size: 16px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+      
+        #persist-btn.selected{
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
+        #select-pin-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0;
+            font-size: 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 6%;
+            padding: 20px;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 32px;
+        }
+        .custom-game-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin: 2px 0;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .custom-game-item.selected {
+            background-color: #b3d9ff;
+        }
+        .custom-game-item:hover {
+            filter: brightness(95%);
+        }
+        .reset-btn {
+            background-color: #ff4444 !important;
+            margin-left: 5px;
+            flex: 0 0 auto;
+            display: none;
+            color: #ffffff;
+        }
+        .button-group {
+            display: flex;
+            gap: 5px;
+            margin: 5px 0;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+        }
+        #prev {
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 18px;
+            text-align: center;
+            color: #999;
+            white-space: pre;
+        }
+        #custom-list{
+            clear:both;
+        }
+        #custom-set-btn{
+            background-color: #e0e0e0;
+        }
+        #custom-set-btn.selected{
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="filter-row" id="floor-buttons">
+        <button class="filter-btn" data-floor="1">Upstairs</button>
+        <button class="filter-btn" data-floor="0">Downstairs</button>
+    </div>
+    <div class="filter-row" id="year-class-buttons">
+        <button class="filter-btn" data-year-class="0">Oldie</button>
+        <button class="filter-btn" data-year-class="1">Classic</button>
+        <button class="filter-btn" data-year-class="2">Modern</button>
+    </div>
+
+    <div class="button-group">
+        <button id="custom-set-btn" class="filter-btn">Custom Set</button>
+        <button id="reset-custom-btn" class="filter-btn reset-btn" style="display: none;">Reset</button>
+    </div>
+    <div class="button-group">
+      <button id="persist-btn">No Dupe</button>
+      <button id="select-pin-btn">Select Pin</button>
+        
+    </div>
+    <div id="result"></div>
+    <div id="prev"></div>
+
+    <div id="custom-set-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <ul id="custom-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        fetch("./data.json")
+          .then((response) => response.json())
+          .then((data) => {
+             main(data);
+         });
+        
+          function main(data){
+
+            const pinballMachines = data;
+
+            pinballMachines.sort((a,b) => (a.commonName > b.commonName) ? 1 : ((b.commonName > a.commonName) ? -1 : 0))
+
+            let selectedFloors = [0, 1];
+            let selectedYearClasses = [0, 1, 2];
+            let customSelectedIds = [];
+            let persist = false;
+            let prevGames = [];
+            const resetBtn = document.getElementById('reset-custom-btn');
+            const customSetBtn = document.getElementById('custom-set-btn');
+            const persistBtn = document.getElementById('persist-btn');
+            const floorButtons = document.querySelectorAll('#floor-buttons .filter-btn');
+            const yearClassButtons = document.querySelectorAll('#year-class-buttons .filter-btn');
+
+            function updateUIState() {
+                resetBtn.style.display = customSelectedIds.length ? 'inline-block' : 'none';
+                const disableFilters = customSelectedIds.length > 0;
+                floorButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
+                yearClassButtons.forEach(btn => btn.classList.toggle('disabled', disableFilters));
+            }
+
+            function getSelectedGames() {
+                if (customSelectedIds.length > 0) {
+                    return pinballMachines.filter(game => customSelectedIds.includes(game.id));
+                }
+                return pinballMachines.filter(game => 
+                    selectedFloors.includes(game.floor) && 
+                    selectedYearClasses.includes(game.yearClass)
+                );
+            }
+
+            document.querySelectorAll('#floor-buttons .filter-btn').forEach(btn => {
+                const floor = parseInt(btn.dataset.floor);
+                btn.classList.toggle('selected', selectedFloors.includes(floor));
+                btn.addEventListener('click', () => {
+                    if (selectedFloors.includes(floor)) {
+                        selectedFloors = selectedFloors.filter(f => f !== floor);
+                    } else {
+                        selectedFloors.push(floor);
+                    }
+                    btn.classList.toggle('selected');
+                    updateUIState();
+                });
+            });
+
+            document.querySelectorAll('#year-class-buttons .filter-btn').forEach(btn => {
+                const yearClass = parseInt(btn.dataset.yearClass);
+                btn.classList.toggle('selected', selectedYearClasses.includes(yearClass));
+                btn.addEventListener('click', () => {
+                    if (selectedYearClasses.includes(yearClass)) {
+                        selectedYearClasses = selectedYearClasses.filter(y => y !== yearClass);
+                    } else {
+                        selectedYearClasses.push(yearClass);
+                    }
+                    btn.classList.toggle('selected');
+                    updateUIState();
+                });
+            });
+
+            const modal = document.getElementById('custom-set-modal');
+            const customList = document.getElementById('custom-list');
+            const closeBtn = modal.querySelector('.close');
+
+            document.getElementById('custom-set-btn').addEventListener('click', () => {
+                if (customSelectedIds.length === 0) {
+                    const filteredGames = pinballMachines.filter(game => 
+                        selectedFloors.includes(game.floor) && 
+                        selectedYearClasses.includes(game.yearClass)
+                    );
+                    customSelectedIds = filteredGames.map(game => game.id);
+                    if (!customSetBtn.classList.contains('selected')) {customSetBtn.classList.toggle('selected')}
+                }
+                
+                modal.style.display = 'block';
+                customList.innerHTML = '';
+                pinballMachines.forEach(game => {
+                    const li = document.createElement('li');
+                    li.className = `custom-game-item ${customSelectedIds.includes(game.id) ? 'selected' : ''}`;
+                    li.textContent = game.commonName;
+                    
+                    li.addEventListener('click', () => {
+                        if (customSelectedIds.includes(game.id)) {
+                            customSelectedIds = customSelectedIds.filter(id => id !== game.id);
+                            li.classList.remove('selected');
+                        } else {
+                            customSelectedIds.push(game.id);
+                            li.classList.add('selected');
+                        }
+                        updateUIState();
+                    });
+                    
+                    customList.appendChild(li);
+                });
+                updateUIState();
+          });
+
+          function handleModalClose(event) {
+              if (event.target === modal) {
+                  modal.style.display = 'none';
+              }
+              if (customSelectedIds.length === 0 && customSetBtn.classList.contains('selected')){
+                  return customSetBtn.classList.remove('selected')
+              }
+              if (customSelectedIds.length !== 0 && !customSetBtn.classList.contains('selected')){
+                  return customSetBtn.classList.toggle('selected')
+              }
+          }
+
+          window.addEventListener('click', handleModalClose);
+          window.addEventListener('touchend', handleModalClose);
+
+          closeBtn.addEventListener('click', () => {
+              modal.style.display = 'none';
+          });
+
+          persistBtn.addEventListener('click', () => {
+              persistBtn.classList.toggle('selected')
+              persist = !persist;
+              //prevGames reset
+              if (persist === false){
+                prevGames = [];
+                document.getElementById('prev').textContent = '';
+
+              }
+          });
+
+          resetBtn.addEventListener('click', () => {
+              customSelectedIds = [];
+              if (customSetBtn.classList.contains('selected')) {customSetBtn.classList.remove('selected')}
+              updateUIState();
+              document.querySelectorAll('.custom-game-item').forEach(li => {
+                  li.classList.remove('selected');
+              });
+          });
+
+          document.getElementById('select-pin-btn').addEventListener('click', () => {
+              let selectedGames = getSelectedGames();
+              if (persist === true && prevGames.length > 0){
+                  const filteredGames = selectedGames.filter(a => !prevGames.map(b=>b.id).includes(a.id));
+                  if (filteredGames.length !== 0) {
+                    selectedGames = filteredGames;
+                  }
+                  else {
+                    prevGames = prevGames.splice(prevGames.length-1);
+                  }
+              }
+              if (selectedGames.length === 0) {
+                  document.getElementById('result').textContent = 'No games selected!';
+                  return;
+              }
+              const randomIndex = Math.floor(Math.random() * selectedGames.length);
+              const selectedGame = selectedGames[randomIndex];
+              document.getElementById('result').textContent = selectedGame.commonName;
+              if (persist === true) {
+                if (prevGames.length > 0) {
+                  document.getElementById('prev').textContent = prevGames[prevGames.length-1].commonName + '\r\n' + document.getElementById('prev').textContent;
+                }
+                prevGames.push(selectedGame);
+                
+              }
+          });
+
+          updateUIState();
+      }
+    </script>
+</body>
+</html>
