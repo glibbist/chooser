@@ -14,11 +14,7 @@ const getYearClass = (year) => (
 const processAPIEntry = (rawData) => {
     // Data validation and sanitization
     const id = Number(rawData.id);
-    if (Number.isNaN(id) || !Number.isInteger(id) || id < 1) {
-        throw new Error(Invalid id: $ {
-            rawData.id
-        });
-    }
+    if (Number.isNaN(id) || !Number.isInteger(id) || id < 1) { throw new Error(Invalid id: $ { rawData.id})}
 
     const name = String(rawData.name).trim();
     if (name.length === 0) throw new Error(Invalid name: $ {
