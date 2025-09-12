@@ -1,7 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 const API_URL = 'https://pinballmap.com/api/v1/locations/17135/machine_details.json';
 const REPOS_JSON_PATH = path.join(process.env.GITHUB_WORKSPACE, './data.json');
@@ -91,6 +90,13 @@ const writeMergedFile = (filePath, data) => {
   console.log(`Successfully wrote to ${filePath}`);
 };
 
+// Set GitHub Action output
+const setOutput = (key, value) => {
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}<<EOF\n${value}\nEOF\n`);
+  }
+};
+
 // Final execution
 (async () => {
   try {
@@ -104,7 +110,7 @@ const writeMergedFile = (filePath, data) => {
 
     // Compute added and removed for commit message
     const addedGames = apiGames.filter(api => !localGames.some(local => local.id === api.id));
-    const removedGames = localGames.filter(local => !apiGames.some(api => api.id === api.id));
+    const removedGames = localGames.filter(local => !apiGames.some(api => api.id === local.id));
 
     // Generate commit message
     const addedNames = addedGames.map(g => `'${g.commonName}'`).join(', ');
@@ -120,20 +126,13 @@ const writeMergedFile = (filePath, data) => {
       } else {
         commitMessage += ` Removed: ${removedNames}`;
       }
+    } else if (!addedNames) {
+      commitMessage += ` Updated pinball data`;
     }
 
-    // Commit changes if any
-    try {
-      execSync('git add data.json', { stdio: 'inherit', cwd: process.env.GITHUB_WORKSPACE });
-      execSync('git diff --cached --exit-code', { stdio: 'inherit', cwd: process.env.GITHUB_WORKSPACE });
-      console.log('No changes to commit');
-    } catch (gitDiffError) {
-      // There are staged changes, proceed to commit
-      execSync('git config user.name "github-actions[bot]"', { stdio: 'inherit', cwd: process.env.GITHUB_WORKSPACE });
-      execSync('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"', { stdio: 'inherit', cwd: process.env.GITHUB_WORKSPACE });
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { stdio: 'inherit', cwd: process.env.GITHUB_WORKSPACE });
-      console.log(`Committed changes with message: ${commitMessage}`);
-    }
+    // Set as output for the workflow
+    setOutput('COMMIT_MESSAGE', commitMessage);
+    console.log(`Generated commit message: ${commitMessage}`);
 
     console.log('Pinned-sync operation complete!');
   } catch (error) {
