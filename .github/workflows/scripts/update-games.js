@@ -108,3 +108,22 @@ const writeMergedFile = (filePath, data) => {
     process.exitCode = 1;
   }
 })();
+
+// Generate commit message
+const addedNames = addedGames.map(g => `'${g.commonName}'`).join(', ');
+const removedNames = removedGames.map(g => `'${g.commonName}'`).join(', ');
+
+let commitMessage = `AUTO-COMMIT:`;
+if (addedNames) {
+  commitMessage += ` Added: ${addedNames}`;
+}
+if (removedNames) {
+  if (addedNames) {
+    commitMessage += `; Removed: ${removedNames}`;
+  } else {
+    commitMessage += ` Removed: ${removedNames}`;
+  }
+}
+
+// Pass message directly to Git in the workflow
+process.env.COMMIT_MESSAGE = commitMessage;
