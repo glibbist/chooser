@@ -37,12 +37,6 @@ jobs:
       continue-on-error: true  # Step progresses with or w/out differences
 
     - name: Git Setup (for commit)
-      if: ${{ steps.check_updates.outcome == 'failure' }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        - name: Commit/Push Updated JSON
       if: steps.check_updates.outcome == 'failure'
       run: |
         git config user.name "github-actions[bot]"
