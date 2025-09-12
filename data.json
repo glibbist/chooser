@@ -455,19 +455,6 @@
     "floor": 1
   },
   {
-    "id": 679,
-    "name": "RollerCoaster Tycoon",
-    "year": 2002,
-    "yearClass": 2,
-    "commonName": "RollerCoaster Tycoon",
-    "manufacturer": "Stern",
-    "ipdb_link": "https://www.ipdb.org/machine.cgi?id=4536",
-    "ipdb_id": 4536,
-    "kineticist_url": "https://www.kineticist.com/pinball-machines/rollercoaster-tycoon-2002",
-    "opdb_id": "Grybw-M5R0n",
-    "floor": 1
-  },
-  {
     "id": 648,
     "name": "Scared Stiff",
     "year": 1996,
