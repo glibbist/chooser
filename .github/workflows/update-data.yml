@@ -42,9 +42,12 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Commit/Push Updated JSON
-      if: ${{ steps.check_updates.outcome == 'failure' }}
+        - name: Commit/Push Updated JSON
+      if: steps.check_updates.outcome == 'failure'
       run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        commit_message=${{ steps.run-data.outputs.COMMIT_MESSAGE }}  # Capture from env var
         git add data.json
-        git commit -m "AUTO-COMMIT: Merged and sync'ed pinball JSON"
-        git push origin main  # Adjust for your repo's active branch
+        git commit -m "$commit_message"
+        git push origin main
