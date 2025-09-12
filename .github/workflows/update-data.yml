@@ -27,6 +27,7 @@ jobs:
       run: npm install axios
 
     - name: Run Data Merge Script
+      id: run-data
       run: |  
         cd "${{ github.workspace }}"
         node .github/workflows/scripts/update-games.js  # Correct path if different
@@ -41,7 +42,10 @@ jobs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        commit_message=${{ steps.run-data.outputs.COMMIT_MESSAGE }}  # Capture from env var
+        commit_message="${{ steps.run-data.outputs.COMMIT_MESSAGE }}"
+        if [ -z "$commit_message" ]; then
+          commit_message="AUTO-COMMIT: Updated pinball data"
+        fi
         git add data.json
         git commit -m "$commit_message"
         git push origin main
