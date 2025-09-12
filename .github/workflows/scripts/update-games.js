@@ -78,11 +78,10 @@ const mergeAndAdjustGames = (apiEntries, localEntries) => {
     }
   }
   
-  // Cleanup non-present ids in API + remove old/deprecated
-  const clean = merged.filter(data => apiEntries.some(api => api.id === data.id));
+  // Merged only includes API-present IDs, automatically cleaning old/deprecated
 
-  console.log(`Merged output: ${clean.length} games`);
-  return clean;
+  console.log(`Merged output: ${merged.length} games`);
+  return merged;
 };
 
 // Write combined file
@@ -102,28 +101,32 @@ const writeMergedFile = (filePath, data) => {
   
     writeMergedFile(REPOS_JSON_PATH, mergedFinalData);
 
+    // Compute added and removed for commit message
+    const addedGames = apiGames.filter(api => !localGames.some(local => local.id === api.id));
+    const removedGames = localGames.filter(local => !apiGames.some(api => api.id === local.id));
+
+    // Generate commit message
+    const addedNames = addedGames.map(g => `'${g.commonName}'`).join(', ');
+    const removedNames = removedGames.map(g => `'${g.commonName}'`).join(', ');
+
+    let commitMessage = `AUTO-COMMIT:`;
+    if (addedNames) {
+      commitMessage += ` Added: ${addedNames}`;
+    }
+    if (removedNames) {
+      if (addedNames) {
+        commitMessage += `; Removed: ${removedNames}`;
+      } else {
+        commitMessage += ` Removed: ${removedNames}`;
+      }
+    }
+
+    // Pass message directly to Git in the workflow
+    process.env.COMMIT_MESSAGE = commitMessage;
+
     console.log('Pinned-sync operation complete!');
   } catch (error) {
     console.error('Critical error: ', error);
     process.exitCode = 1;
   }
 })();
-
-// Generate commit message
-const addedNames = addedGames.map(g => `'${g.commonName}'`).join(', ');
-const removedNames = removedGames.map(g => `'${g.commonName}'`).join(', ');
-
-let commitMessage = `AUTO-COMMIT:`;
-if (addedNames) {
-  commitMessage += ` Added: ${addedNames}`;
-}
-if (removedNames) {
-  if (addedNames) {
-    commitMessage += `; Removed: ${removedNames}`;
-  } else {
-    commitMessage += ` Removed: ${removedNames}`;
-  }
-}
-
-// Pass message directly to Git in the workflow
-process.env.COMMIT_MESSAGE = commitMessage;
