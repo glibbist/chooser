@@ -3,13 +3,13 @@
     "id": 643,
     "name": "Attack From Mars",
     "year": 1995,
+    "yearClass": 1,
+    "commonName": "Attack From Mars",
     "manufacturer": "Bally",
     "ipdb_link": "https://www.ipdb.org/machine.cgi?id=3781",
     "ipdb_id": 3781,
     "kineticist_url": "https://www.kineticist.com/pinball-machines/attack-from-mars-1995",
     "opdb_id": "G4do5-MDlN7",
-    "commonName": "Attack From Mars",
-    "yearClass": 1,
     "floor": 1
   },
   {
