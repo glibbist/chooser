@@ -91,6 +91,19 @@
     "floor": 2
   },
   {
+    "id": 809,
+    "name": "Dolly Parton",
+    "year": 1978,
+    "manufacturer": "Bally",
+    "ipdb_link": "https://www.ipdb.org/machine.cgi?id=698",
+    "ipdb_id": 698,
+    "kineticist_url": "https://www.kineticist.com/pinball-machines/dolly-parton-1978",
+    "opdb_id": "G43Yq-MJ7o4",
+    "commonName": "Dolly Parton",
+    "yearClass": 0,
+    "floor": 1
+  },
+  {
     "id": 4517,
     "name": "Dungeons & Dragons: The Tyrant's Eye (Premium)",
     "year": 2025,
