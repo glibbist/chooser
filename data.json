@@ -94,13 +94,13 @@
     "id": 809,
     "name": "Dolly Parton",
     "year": 1978,
+    "yearClass": 0,
+    "commonName": "Dolly Parton",
     "manufacturer": "Bally",
     "ipdb_link": "https://www.ipdb.org/machine.cgi?id=698",
     "ipdb_id": 698,
     "kineticist_url": "https://www.kineticist.com/pinball-machines/dolly-parton-1978",
     "opdb_id": "G43Yq-MJ7o4",
-    "commonName": "Dolly Parton",
-    "yearClass": 0,
     "floor": 1
   },
   {
